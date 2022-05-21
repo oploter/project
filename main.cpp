@@ -1,4 +1,5 @@
 #include "model.h"
+#include "vars.h"
 #include "view.h"
 #include <SFML/Graphics.hpp>
 #include <iostream>
@@ -48,6 +49,7 @@ int main() {
   sf::RenderWindow window(sf::VideoMode(750, 750), "Window");
   Model model("../map.txt");
   View view(window, model);
+  GameState state = GameState::MENU;
 
   Player p("hero.png",0,0,25.0, 41.75);//создаем объект p класса player,задаем "hero.png" как имя файла+расширение, далее координата Х,У, ширина, высота.
 
@@ -63,6 +65,22 @@ int main() {
       while (window.pollEvent(ev)) {
           if (ev.type == sf::Event::Closed) {
               window.close();
+          }
+          switch (state)
+          {
+          case GameState::MENU:
+              if(ev.type == sf::Event::MouseButtonPressed){
+                auto mousePos = sf::Mouse::getPosition(window);
+                if(model.getButtons()[0].isClicked(mousePos.x, mousePos.y)){ // нажали "Single game"
+                  state = GameState::GAME;
+                }else if(model.getButtons()[1].isClicked(mousePos.x, mousePos.y)){ // нажали "Exit"
+                  window.close();
+                }
+              }
+              break;
+          case GameState::GAME:
+            // тут проверяем нажатие клавиш в самой игре
+            break;
           }
       }
 
@@ -98,11 +116,18 @@ int main() {
 
 
       window.clear();
-      view.drawMap();
-      window.draw(p.sprite);//рисуем спрайт объекта p класса player
+      switch (state)
+      {
+      case GameState::MENU:
+          view.drawMenu();
+          break;
+      case GameState::GAME:
+          view.drawMap();
+          window.draw(p.sprite);//рисуем спрайт объекта p класса player
+          break;
+      }
       window.display();
   }
 
     return 0;
 }
-
