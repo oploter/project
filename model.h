@@ -3,9 +3,7 @@
 #include "button.h"
 #include "map.h"
 #include "vars.h"
-#include <SFML/Graphics.hpp>
 #include <string>
-#include <utility>
 #include <vector>
 struct Model {
 private:

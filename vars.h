@@ -1,7 +1,5 @@
 #ifndef VARS_H
 #define VARS_H
-#include <string>
-#include <unordered_map>
 #include <vector>
 enum class BlockType { CONCRETE = 0, GREEN, WATER };
 enum class GameState { MENU = 0, GAME };
