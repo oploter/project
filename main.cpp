@@ -30,48 +30,29 @@ public:
         switch (dir)//реализуем поведение в зависимости от направления. (каждая цифра соответствует направлению)
         {
             case 0: dx = speed; dy = 0; break;//по иксу задаем положительную скорость, по игреку зануляем. получаем, что персонаж идет только вправо
-            case 1: dx = -speed; dy = 0; break;//по иксу задаем отрицательную скорость, по игреку зануляем. получается, что персонаж идет только влево
-            case 2: dx = 0; dy = speed; break;//по иксу задаем нулевое значение, по игреку положительное. получается, что персонаж идет только вниз
-            case 3: dx = 0; dy = -speed; break;//по иксу задаем нулевое значение, по игреку отрицательное. получается, что персонаж идет только вверх
+            case 1: dx = -speed; dy = 0; break;//по  скорость, по игреку зануляем. получается, что персонаж идет только влево
+            case 2: dx = 0; dy = speed; break;//по и значение, по игреку положительное. получается, что персонаж идет только вниз
+            case 3: dx = 0; dy = -speed; break;
         }
 
-        x += dx*time;//то движение из прошлого урока. наше ускорение на время получаем смещение координат и как следствие движение
-        y += dy*time;//аналогично по игреку
+        x += dx*time;
+        y += dy*time;
 
-        speed = 0;//зануляем скорость, чтобы персонаж остановился.
-        sprite.setPosition(x,y); //выводим спрайт в позицию x y , посередине. бесконечно выводим в этой функции, иначе бы наш спрайт стоял на месте.
+        speed = 0;
+        sprite.setPosition(x,y);
     }
 };
 
 
 int main() {
-<<<<<<< HEAD
-    sf::RenderWindow window(sf::VideoMode(750, 750), "Window");
-    window.setFramerateLimit(30);
-    Model model("../map.txt");
-    View view(window, model);
-    Player plr(0);
-    while (window.isOpen()) {
-        sf::Event ev;
-        while (window.pollEvent(ev)) {
-            if (ev.type == sf::Event::Closed) {
-                window.close();
-            }
-        }
-        window.clear();
-        view.drawMap();
-        view.drawPlayer(plr);
-        window.display();
-    }
-}
-=======
   sf::RenderWindow window(sf::VideoMode(750, 750), "Window");
   Model model("../map.txt");
   View view(window, model);
+  GameState state = GameState::MENU;
 
-  Player p("hero.png",0,0,25.0, 41.75);//создаем объект p класса player,задаем "hero.png" как имя файла+расширение, далее координата Х,У, ширина, высота.
+  Player p("hero.png",0,0,25.0, 41.75);
 
-  float CurrentFrame = 0;//хранит текущий кадр
+  float CurrentFrame = 0;
   sf::Clock clock;
 
   while (window.isOpen()) {
@@ -81,9 +62,26 @@ int main() {
       sf::Event ev;
 
       while (window.pollEvent(ev)) {
-          if (ev.type == sf::Event::Closed) {
-              window.close();
-          }
+        if(ev.type == sf::Event::Closed){
+            window.close();
+            continue;
+        }
+        switch (state)
+        {
+        case GameState::MENU: // Состояние меню - можно только нажимать кнопки
+            if(ev.type == sf::Event::MouseButtonPressed){
+                auto mousePosition = sf::Mouse::getPosition(window);
+                if(model.getButtons()[0].isClicked(mousePosition.x, mousePosition.y)){ // начало игры -> ставим состояние "Игра"
+                    state = GameState::GAME;
+                }else if(model.getButtons()[1].isClicked(mousePosition.x, mousePosition.y)){ // выход из игры -> закрываем окно
+                    window.close();
+                }
+            }
+            break;
+        case GameState::GAME: // Состояние игры
+            // Тут надо обработать нажатия клавиш
+            break;
+        }
       }
 
       if ((sf::Keyboard::isKeyPressed(sf::Keyboard::Left))) { //если нажата клавиша стрелка влево или англ буква А
@@ -118,12 +116,18 @@ int main() {
 
 
       window.clear();
-      view.drawMap();
-      window.draw(p.sprite);//рисуем спрайт объекта p класса player
+      switch(state){
+        case GameState::MENU:
+            view.drawMenu();
+            break;
+        case GameState::GAME:
+            view.drawMap();
+            window.draw(p.sprite);
+            break;
+      }
       window.display();
   }
 
     return 0;
 }
 
->>>>>>> 498ed3cb0f2ff3ef47c0dd97514efe6fbf6afc63
