@@ -7,9 +7,9 @@ struct Map {
 private:
   int rows = 0;
   int cols = 0;
+public:
   std::vector<std::vector<BlockType>> field;
 
-public:
   Map(int rows_, int cols_);
   Map(const std::string &file_name);
   int getRows() const;

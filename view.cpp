@@ -38,16 +38,16 @@ sf::Texture *View::get_or_create_texture(const std::string &texture_name,
 View::View(sf::RenderWindow &window_, Model &model_)
     : window(window_), model(model_), screen_width(window.getSize().x),
       screen_height(window.getSize().y) {
-  get_or_create_texture("map", "../img/map.png");
+  get_or_create_texture("map", "../img/blocks.png");
   get_or_create_font("font", "../img/font.ttf");
 }
 void View::drawMap() {
   [[maybe_unused]] const Map &map = model.getMap();
   [[maybe_unused]] auto &mapTexture = *get_or_create_texture("map");
   mapSprite.setTexture(mapTexture);
-  for (int row = 0; row < map.getRows(); row++) {
-    for (int col = 0; col < map.getCols(); col++) {
-      mapSprite.setPosition(row * BlockSize, col * BlockSize);
+  for (int col = 0; col < map.getCols(); col++) {
+    for (int row = 0; row < map.getRows(); row++) {
+      mapSprite.setPosition(col * BlockSize, row * BlockSize);
       switch (map.at(row, col)) {
       case BlockType::WATER:
         mapSprite.setTextureRect(sf::IntRect(100, 0, BlockSize, BlockSize));
@@ -57,6 +57,9 @@ void View::drawMap() {
         break;
       case BlockType::CONCRETE:
         mapSprite.setTextureRect(sf::IntRect(0, 0, BlockSize, BlockSize));
+        break;
+      case BlockType::COIN:
+        mapSprite.setTextureRect(sf::IntRect(150, 0, BlockSize, BlockSize));
         break;
       }
       window.draw(mapSprite);

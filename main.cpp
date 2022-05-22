@@ -3,18 +3,22 @@
 #include "view.h"
 #include <SFML/Graphics.hpp>
 #include <iostream>
+#include <sstream>
 
 ////////////////////////////////////////////////////КЛАСС ИГРОКА////////////////////////
 class Player { // класс Игрока
+private:
+    float x, y;
 public:
-    float x, y, w, h, dx, dy, speed ; //координаты игрока х и у, высота ширина, ускорение (по х и по у), сама скорость
-    int dir ; //направление (direction) движения игрока
+    float w, h, dx, dy, speed ; //координаты игрока х и у, высота ширина, ускорение (по х и по у), сама скорость
+    int dir, playerscore; //направление (direction) движения игрока
     sf::String File; //файл с расширением
     sf::Image image;//сфмл изображение
     sf::Texture texture;//сфмл текстура
     sf::Sprite sprite;//сфмл спрайт
 
     Player(sf::String F, float X, float Y, float W, float H){ //Конструктор с параметрами(формальными) для класса Player. При создании объекта класса мы будем задавать имя файла, координату Х и У, ширину и высоту
+        playerscore = 0;
         dx=0;dy=0;speed=0;dir=0;
         File = F;//имя файла+расширение
         w = W; h = H;//высота и ширина
@@ -26,7 +30,7 @@ public:
         sprite.setTextureRect(sf::IntRect(0, 0, w, h)); //Задаем спрайту один прямоугольник для вывода одного льва, а не кучи львов сразу. IntRect - приведение типов
     }
 
-    void update(float time) //функция "оживления" объекта класса. update - обновление. принимает в себя время SFML , вследствие чего работает бесконечно, давая персонажу движение.
+    void update(float time, Model &model) //функция "оживления" объекта класса. update - обновление. принимает в себя время SFML , вследствие чего работает бесконечно, давая персонажу движение.
     {
         switch (dir)//реализуем поведение в зависимости от направления. (каждая цифра соответствует направлению)
         {
@@ -41,6 +45,26 @@ public:
 
         speed = 0;//зануляем скорость, чтобы персонаж остановился.
         sprite.setPosition(x,y); //выводим спрайт в позицию x y , посередине. бесконечно выводим в этой функции, иначе бы наш спрайт стоял на месте.
+        interactionWithMap(model);
+    }
+
+    void interactionWithMap(Model &model) {
+        for (int i = y / 50; i < (y + h) / 50; i++) {
+            for (int j = x / 50; j < (x + w) / 50; j++) {
+                if (model.getMap().field[i][j] == BlockType::COIN) {
+                    playerscore += 1;
+                    model.getMap().field[i][j] = static_cast<BlockType>(static_cast<int>('1') - 48);
+                }
+            }
+        }
+    }
+
+    float getX() {
+        return x;
+    }
+
+    float getY() {
+        return y;
     }
 };
 
@@ -55,6 +79,13 @@ int main() {
 
   float CurrentFrame = 0;//хранит текущий кадр
   sf::Clock clock;
+
+  sf::Font font;
+  font.loadFromFile("../arial.ttf");
+  sf::Text text("", font, 20);
+  //text.setOutlineColor(sf::Color::Black);
+  text.setFillColor(sf::Color::Black);
+  text.setStyle(sf::Text::Bold | sf::Text::Underlined);
 
   while (window.isOpen()) {
       float time = clock.getElapsedTime().asMicroseconds();
@@ -87,32 +118,32 @@ int main() {
       if ((sf::Keyboard::isKeyPressed(sf::Keyboard::Left))) { //если нажата клавиша стрелка влево или англ буква А
           p.dir = 1; p.speed = 0.1;//dir =1 - направление вверх, speed =0.1 - скорость движения. Заметьте - время мы уже здесь ни на что не умножаем и нигде не используем каждый раз
           CurrentFrame += 0.005*time; //служит для прохождения по "кадрам". переменная доходит до трех суммируя произведение времени и скорости. изменив 0.005 можно изменить скорость анимации
-          if (CurrentFrame > 3) CurrentFrame -= 3; //проходимся по кадрам с первого по третий включительно. если пришли к третьему кадру - откидываемся назад.
+          if (CurrentFrame > 4) CurrentFrame -= 4; //проходимся по кадрам с первого по третий включительно. если пришли к третьему кадру - откидываемся назад.
           p.sprite.setTextureRect(sf::IntRect(25 * int(CurrentFrame), 84, 25, 42)); //проходимся по координатам Х. получается 96,96*2,96*3 и опять 96
       }
 
       if ((sf::Keyboard::isKeyPressed(sf::Keyboard::Right))) {
           p.dir = 0; p.speed = 0.1;//направление вправо, см выше
           CurrentFrame += 0.005*time; //служит для прохождения по "кадрам". переменная доходит до трех суммируя произведение времени и скорости. изменив 0.005 можно изменить скорость анимации
-          if (CurrentFrame > 3) CurrentFrame -= 3; //проходимся по кадрам с первого по третий включительно. если пришли к третьему кадру - откидываемся назад.
+          if (CurrentFrame > 4) CurrentFrame -= 4; //проходимся по кадрам с первого по третий включительно. если пришли к третьему кадру - откидываемся назад.
           p.sprite.setTextureRect(sf::IntRect(25 * int(CurrentFrame), 42, 25, 42)); //проходимся по координатам Х. получается 96,96*2,96*3 и опять 96
       }
 
       if ((sf::Keyboard::isKeyPressed(sf::Keyboard::Up))) {
           p.dir = 3; p.speed = 0.1;//направление вниз, см выше
           CurrentFrame += 0.005*time; //служит для прохождения по "кадрам". переменная доходит до трех суммируя произведение времени и скорости. изменив 0.005 можно изменить скорость анимации
-          if (CurrentFrame > 3) CurrentFrame -= 3; //проходимся по кадрам с первого по третий включительно. если пришли к третьему кадру - откидываемся назад.
+          if (CurrentFrame > 4) CurrentFrame -= 4; //проходимся по кадрам с первого по третий включительно. если пришли к третьему кадру - откидываемся назад.
           p.sprite.setTextureRect(sf::IntRect(25 * int(CurrentFrame), 0, 25, 42)); //проходимся по координатам Х. получается 96,96*2,96*3 и опять 96
       }
 
       if ((sf::Keyboard::isKeyPressed(sf::Keyboard::Down))) {
           p.dir = 2; p.speed = 0.1;//направление вверх, см выше
           CurrentFrame += 0.005*time; //служит для прохождения по "кадрам". переменная доходит до трех суммируя произведение времени и скорости. изменив 0.005 можно изменить скорость анимации
-          if (CurrentFrame > 3) CurrentFrame -= 3; //проходимся по кадрам с первого по третий включительно. если пришли к третьему кадру - откидываемся назад.
+          if (CurrentFrame > 4) CurrentFrame -= 4; //проходимся по кадрам с первого по третий включительно. если пришли к третьему кадру - откидываемся назад.
           p.sprite.setTextureRect(sf::IntRect(25 * int(CurrentFrame), 125, 25, 42)); //проходимся по координатам Х. получается 96,96*2,96*3 и опять 96
       }
 
-      p.update(time);//оживляем объект p класса Player с помощью времени sfml, передавая время в качестве параметра функции update. благодаря этому персонаж может двигаться
+      p.update(time, model);//оживляем объект p класса Player с помощью времени sfml, передавая время в качестве параметра функции update. благодаря этому персонаж может двигаться
 
 
       window.clear();
@@ -123,6 +154,11 @@ int main() {
           break;
       case GameState::GAME:
           view.drawMap();
+          std::wostringstream PlayerScore;
+          PlayerScore << p.playerscore;
+          text.setString(L"Собрано монет:" + PlayerScore.str());
+          text.setPosition(0, 0);
+          window.draw(text);
           window.draw(p.sprite);//рисуем спрайт объекта p класса player
           break;
       }

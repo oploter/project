@@ -11,7 +11,7 @@ private:
   std::vector<Button> buttons;
 
 public:
-  const Map &getMap() const;
+  Map &getMap();
   const std::vector<Button> &getButtons() const;
   Model(const std::string &mapFileName);
 };
