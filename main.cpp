@@ -10,7 +10,8 @@ class Player { // класс Игрока
 private:
     float x, y;
 public:
-    float w, h, dx, dy, speed ; //координаты игрока х и у, высота ширина, ускорение (по х и по у), сама скорость
+    float w, h, dx, dy, speed, health ; //координаты игрока х и у, высота ширина, ускорение (по х и по у), сама скорость
+    bool life;
     int dir, playerscore; //направление (direction) движения игрока
     sf::String File; //файл с расширением
     sf::Image image;//сфмл изображение
@@ -19,6 +20,8 @@ public:
 
     Player(sf::String F, float X, float Y, float W, float H){ //Конструктор с параметрами(формальными) для класса Player. При создании объекта класса мы будем задавать имя файла, координату Х и У, ширину и высоту
         playerscore = 0;
+        health = 100;
+        life = true;
         dx=0;dy=0;speed=0;dir=0;
         File = F;//имя файла+расширение
         w = W; h = H;//высота и ширина
@@ -55,6 +58,12 @@ public:
                     playerscore += 1;
                     model.getMap().field[i][j] = static_cast<BlockType>(static_cast<int>('1') - 48);
                 }
+                if (model.getMap().field[i][j] == BlockType::WATER) {
+                    health = 0;
+                }
+                if (model.getMap().field[i][j] == BlockType::MOLE) {
+                    health -= 0.001;
+                }
             }
         }
     }
@@ -80,12 +89,19 @@ int main() {
   float CurrentFrame = 0;//хранит текущий кадр
   sf::Clock clock;
 
-  sf::Font font;
-  font.loadFromFile("../arial.ttf");
-  sf::Text text("", font, 20);
+  sf::Font score;
+  score.loadFromFile("../arial.ttf");
+  sf::Text text_s("", score, 20);
   //text.setOutlineColor(sf::Color::Black);
-  text.setFillColor(sf::Color::Black);
-  text.setStyle(sf::Text::Bold | sf::Text::Underlined);
+  text_s.setFillColor(sf::Color::Black);
+  text_s.setStyle(sf::Text::Bold | sf::Text::Underlined);
+
+  sf::Font Health;
+  Health.loadFromFile("../arial.ttf");
+  sf::Text text_h("", Health, 20);
+  //text.setOutlineColor(sf::Color::Black);
+  text_h.setFillColor(sf::Color::Black);
+  text_h.setStyle(sf::Text::Bold | sf::Text::Underlined);
 
   while (window.isOpen()) {
       float time = clock.getElapsedTime().asMicroseconds();
@@ -156,9 +172,15 @@ int main() {
           view.drawMap();
           std::wostringstream PlayerScore;
           PlayerScore << p.playerscore;
-          text.setString(L"Собрано монет:" + PlayerScore.str());
-          text.setPosition(0, 0);
-          window.draw(text);
+          text_s.setString(L"Собрано монет:" + PlayerScore.str());
+          text_s.setPosition(0, 0);
+          window.draw(text_s);
+
+          std::wostringstream PlayerHealth;
+          PlayerHealth << p.health;
+          text_h.setString(L"Здоровье:" + PlayerHealth.str());
+          text_h.setPosition(0, 700);
+          window.draw(text_h);
           window.draw(p.sprite);//рисуем спрайт объекта p класса player
           break;
       }

@@ -61,6 +61,9 @@ void View::drawMap() {
       case BlockType::COIN:
         mapSprite.setTextureRect(sf::IntRect(150, 0, BlockSize, BlockSize));
         break;
+      case BlockType::MOLE:
+        mapSprite.setTextureRect(sf::IntRect(50, 0, BlockSize, BlockSize));
+        break;
       }
       window.draw(mapSprite);
     }
