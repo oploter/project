@@ -12,6 +12,7 @@ private:
 
 public:
   Map &getMap();
+  void update(float time);
   const std::vector<Button> &getButtons() const;
   Model(const std::string &mapFileName);
 };

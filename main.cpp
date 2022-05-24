@@ -10,7 +10,7 @@ class Player { // класс Игрока
 private:
     float x, y;
 public:
-    float w, h, dx, dy, speed, health ; //координаты игрока х и у, высота ширина, ускорение (по х и по у), сама скорость
+    float w, h, dx, dy, speed, health, ability, ind; //координаты игрока х и у, высота ширина, ускорение (по х и по у), сама скорость
     bool life;
     int dir, playerscore; //направление (direction) движения игрока
     sf::String File; //файл с расширением
@@ -21,6 +21,8 @@ public:
     Player(sf::String F, float X, float Y, float W, float H){ //Конструктор с параметрами(формальными) для класса Player. При создании объекта класса мы будем задавать имя файла, координату Х и У, ширину и высоту
         playerscore = 0;
         health = 100;
+        ability = 50;
+        ind = 0;
         life = true;
         dx=0;dy=0;speed=0;dir=0;
         File = F;//имя файла+расширение
@@ -54,16 +56,14 @@ public:
     void interactionWithMap(Model &model) {
         for (int i = y / 50; i < (y + h) / 50; i++) {
             for (int j = x / 50; j < (x + w) / 50; j++) {
-                if (model.getMap().field[i][j] == BlockType::COIN) {
-                    playerscore += 1;
-                    model.getMap().field[i][j] = static_cast<BlockType>(static_cast<int>('1') - 48);
-                }
                 if (model.getMap().field[i][j] == BlockType::WATER) {
                     health = 0;
                 }
                 if (model.getMap().field[i][j] == BlockType::MOLE) {
                     health -= 0.001;
                 }
+                playerscore += model.getMap().score_of_coins[i][j];
+                model.getMap().score_of_coins[i][j] = 0;
             }
         }
     }
@@ -102,6 +102,13 @@ int main() {
   //text.setOutlineColor(sf::Color::Black);
   text_h.setFillColor(sf::Color::Black);
   text_h.setStyle(sf::Text::Bold | sf::Text::Underlined);
+
+  sf::Font Message;
+  Message.loadFromFile("../arial.ttf");
+  sf::Text text_m("", Message, 20);
+  //text.setOutlineColor(sf::Color::Black);
+  text_m.setFillColor(sf::Color::Red);
+  text_m.setStyle(sf::Text::Bold | sf::Text::Underlined);
 
   while (window.isOpen()) {
       float time = clock.getElapsedTime().asMicroseconds();
@@ -159,8 +166,24 @@ int main() {
           p.sprite.setTextureRect(sf::IntRect(25 * int(CurrentFrame), 125, 25, 42)); //проходимся по координатам Х. получается 96,96*2,96*3 и опять 96
       }
 
-      p.update(time, model);//оживляем объект p класса Player с помощью времени sfml, передавая время в качестве параметра функции update. благодаря этому персонаж может двигаться
+      if ((sf::Keyboard::isKeyPressed(sf::Keyboard::P))) {
+          int row = p.getY() / 50;
+          int col = p.getX() / 50;
+          if (p.ability >= 50 && model.getMap().field[row][col] == BlockType::GREEN) {
+              model.getMap().field[row][col] = static_cast<BlockType>(static_cast<int>('4') - 48);
+              p.ability = 0;
+          }
+          else {
+              p.ind = 1;
+              //std::cout << "До следующей возможности посадить цветок осталось " << 50 - p.ability << " секунд" << "\n";
+          }
+      }
 
+      std::cout << model.getMap().time_of_life[0][0] << "\n";
+
+      p.update(time, model);//оживляем объект p класса Player с помощью времени sfml, передавая время в качестве параметра функции update. благодаря этому персонаж может двигаться
+      model.update(time);
+      p.ability += 0.001 * time;
 
       window.clear();
       switch (state)
@@ -182,6 +205,15 @@ int main() {
           text_h.setPosition(0, 700);
           window.draw(text_h);
           window.draw(p.sprite);//рисуем спрайт объекта p класса player
+
+          if (p.ind == 1) {
+              std::wostringstream M;
+              M << (50 - p.ability);
+              text_m.setString(L"Осталось " + M.str() + L" секунд");
+              text_m.setPosition(450, 0);
+              window.draw(text_m);
+              p.ind = 0;
+          }
           break;
       }
       window.display();

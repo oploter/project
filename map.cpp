@@ -6,7 +6,7 @@
 #include <vector>
 Map::Map(int rows_, int cols_)
     : rows(rows_), cols(cols_),
-      field(rows, std::vector<BlockType>(cols, BlockType::GREEN)) {}
+      field(rows, std::vector<BlockType>(cols, BlockType::GREEN)), time_of_life(rows, std::vector<int>(cols, 0)), score_of_coins(rows, std::vector<int>(cols, 0)), last_time(rows, std::vector<int>(cols, 0)) {}
 Map::Map(const std::string &file_name) {
   std::ifstream file;
   file.exceptions(std::ios_base::badbit | std::ios_base::failbit);
@@ -18,6 +18,9 @@ Map::Map(const std::string &file_name) {
   }
   file >> rows >> cols;
   field.resize(rows, std::vector<BlockType>(cols, BlockType::GREEN));
+  time_of_life.resize(rows, std::vector<int>(cols, 0));
+  score_of_coins.resize(rows, std::vector<int>(cols, 0));
+  last_time.resize(rows, std::vector<int>(cols, 0));
   for (int row = 0; row < rows; row++) {
     for (int col = 0; col < cols; col++) {
       char type;
