@@ -3,28 +3,25 @@
 #include "vars.h"
 #include <SFML/Graphics.hpp>
 
-////////////////////////////////////////////////////КЛАСС ИГРОКА////////////////////////
+////////////////////////////////////////////////////КЛАСС
+///ИГРОКА////////////////////////
 struct Model;
 class Player {
 public:
-    float x, y, w, h, dx, dy, speed, health, ability, bul_ability, ind;
-    bool life;
-    int dir, playerscore;
-    float leftOnWater = 3;
-    sf::String File;
-    sf::Image image;
-    sf::Texture texture;
-    sf::Sprite sprite;
-    Player(sf::String F, float X, float Y, float W, float H);
-    void update(float time, Model &model);
-    void interactionWithMap(float time, Model &model);
+  float x, y, w, h, dx, dy, speed, health, ability, bul_ability, ind;
+  bool life;
+  int dir, playerscore;
+  float leftOnWater = 3;
+  sf::String File;
+  sf::Image image;
+  sf::Texture texture;
+  sf::Sprite sprite;
+  Player(sf::String F, float X, float Y, float W, float H);
+  void update(float time, Model &model);
+  void interactionWithMap(float time, Model &model);
 
-    float getX() {
-        return x;
-    }
+  float getX() { return x; }
 
-    float getY() {
-        return y;
-    }
+  float getY() { return y; }
 };
 #endif

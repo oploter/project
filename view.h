@@ -22,6 +22,6 @@ public:
   View(sf::RenderWindow &window_, Model &model_);
   void drawMap();
   void drawMenu();
-  void changeModel(Model& new_model);
+  void changeModel(Model &new_model);
 };
 #endif
