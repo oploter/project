@@ -39,7 +39,7 @@ View::View(sf::RenderWindow &window_, Model &model_)
     : window(window_), model(model_), screen_width(window.getSize().x),
       screen_height(window.getSize().y) {
   get_or_create_texture("map", "../img/blocks.png");
-  get_or_create_font("font", "../img/font.ttf");
+  get_or_create_font("font", "../img/arial.ttf");
 }
 void View::drawMap() {
   [[maybe_unused]] const Map &map = model.getMap();

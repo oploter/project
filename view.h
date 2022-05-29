@@ -1,6 +1,7 @@
 #ifndef VIEW_H
 #define VIEW_H
 #include "model.h"
+#include "vars.h"
 #include <SFML/Graphics.hpp>
 #include <string>
 #include <vector>

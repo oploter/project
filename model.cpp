@@ -1,14 +1,33 @@
 #include "model.h"
 #include "map.h"
+#include "vars.h"
 #include <iostream>
 #include <string>
 Map &Model::getMap() { return map; }
+Player &Model::getPlayer() { return plr; }
 const std::vector<Button> &Model::getButtons() const { return buttons; }
-Model::Model(const std::string &mapFileName) : map(mapFileName) {
-  buttons.emplace_back("Single game", 250, 350);
-  buttons.emplace_back("Exit", 250, 380);
+Model::Model(const std::string &mapFileName) : map(mapFileName), plr("hero.png",0,0,25.0, 41.75), state(GameState::MENU) {
+  buttons.emplace_back(L"Одиночная игра", 250, 350);
+  buttons.emplace_back(L"Выход", 250, 380);
 }
 void Model::update(float time) {
+    switch (map.at((plr.getY() + plr.h / 2) / BlockSize, (plr.getX() + plr.w / 2) / BlockSize))
+    {
+    case BlockType::WATER:
+        if(plr.leftOnWater <= 0){
+            state = GameState::DIED;
+            plr.life = false;
+            return;
+        }
+        break;
+    case BlockType::CONCRETE:
+        plr.x -= plr.dx * time;
+        plr.y -= plr.dy * time;
+        break;
+    default:
+        plr.leftOnWater = 3;
+        break;
+    }
     for (int col = 0; col < map.getCols(); col++) {
         for (int row = 0; row < map.getRows(); row++) {
             if (map.field[row][col] == BlockType::SMALL_FLOWER) {

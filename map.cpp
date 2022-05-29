@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <cassert>
 Map::Map(int rows_, int cols_)
     : rows(rows_), cols(cols_),
       field(rows, std::vector<BlockType>(cols, BlockType::GREEN)), time_of_life(rows, std::vector<int>(cols, 0)), score_of_coins(rows, std::vector<int>(cols, 0)), last_time(rows, std::vector<int>(cols, 0)) {}
@@ -31,4 +32,6 @@ Map::Map(const std::string &file_name) {
 }
 int Map::getRows() const { return rows; }
 int Map::getCols() const { return cols; }
-BlockType Map::at(int row, int col) const { return field[row][col]; }
+BlockType Map::at(int row, int col) const {
+    return field.at(row).at(col); 
+}
