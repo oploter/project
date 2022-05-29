@@ -5,7 +5,73 @@
 #include <iostream>
 #include <sstream>
 #include <memory>
+#include <deque>
+#include <utility>
+class Bullet {
+private:
+    float x, y;
+public:
+    float w, h, dx, dy, speed;
+    bool life;
+    int dir;
+    sf::String File;
+    sf::Image image;
+    sf::Texture texture;
+    sf::Sprite sprite;
+
+    Bullet(sf::String F, float X, float Y, float W, float H, int dir_){
+        dx=0;dy=0;speed=0.15;dir=dir_;
+        life = true;
+        File = F;
+        w = W; h = H;
+        image.loadFromFile("../img/" + File);
+        texture.loadFromImage(image);
+        sprite.setTexture(texture);
+        x = X; y = Y;//координата появления спрайта
+        sprite.setTextureRect(sf::IntRect(0, 0, w, h));
+        sprite.setPosition(x, y);
+    }
+    void update(float time, Model &model)
+    {
+        switch (dir)
+        {
+            case 0: dx = speed; dy = 0; break;
+            case 1: dx = -speed; dy = 0; break;
+            case 2: dx = 0; dy = speed; break;
+            case 3: dx = 0; dy = -speed; break;
+        }
+
+        x += dx*time;
+        y += dy*time;
+
+        sprite.setPosition(x,y);
+        interactionWithMap(model);
+    }
+
+    void interactionWithMap(Model &model) {
+        for (int i = y / 50; i < (y + h) / 50; i++) {
+            for (int j = x / 50; j < (x + w) / 50; j++) {
+                if (i <= 0 || j <= 0 || i >= (model.getMap().getRows() - 1) || j >= (model.getMap().getCols() - 1)) {
+                    life = false;
+                }
+                else if (model.getMap().field[i][j] == BlockType::SMALL_FLOWER || model.getMap().field[i][j] == BlockType::AVERAGE_FLOWER || model.getMap().field[i][j] == BlockType::BIG_FLOWER) {
+                    life = false;
+                    model.getMap().life_of_flowers[i][j] -= 20;
+                }
+            }
+        }
+    }
+
+    float getX() {
+        return x;
+    }
+
+    float getY() {
+        return y;
+    }
+};
 int main() {
+  std::deque <std::unique_ptr<Bullet>> bullets;
   sf::RenderWindow window(sf::VideoMode(750, 750), "Window");
   std::unique_ptr<Model> model_ptr(new Model("../map.txt"));
   View view(window, *model_ptr);
@@ -93,6 +159,7 @@ int main() {
           int row = p->getY() / 50;
           int col = p->getX() / 50;
           if (p->ability >= 50 && model_ptr->getMap().field[row][col] == BlockType::GREEN) {
+              model.getMap().life_of_flowers[row][col] = 20;
               model_ptr->getMap().field[row][col] = static_cast<BlockType>(static_cast<int>('4') - 48);
               p->ability = 0;
           }
@@ -101,6 +168,13 @@ int main() {
               //std::cout << "До следующей возможности посадить цветок осталось " << 50 - p->ability << " секунд" << "\n";
           }
       }
+      if ((sf::Keyboard::isKeyPressed(sf::Keyboard::S))) {
+          if (p.bul_ability >= 50) {
+              bullets.emplace_back(std::make_unique<Bullet>("bullet.png",p.x,p.y,16.0, 16.0, p.dir));
+              p.bul_ability = 0;
+          }
+          //std::cout << bullets.size() << "\n";
+        }
 
       //std::cout << model.getMap().time_of_life[0][0] << "\n";
       window.clear();
@@ -113,36 +187,50 @@ int main() {
           }
       case GameState::GAME:
           {
-          p->update(time, *model_ptr);//оживляем объект p класса Player с помощью времени sfml, передавая время в качестве параметра функции update. благодаря этому персонаж может двигаться
-          model_ptr->update(time);
-          p->ability += 0.001 * time;
-          view.drawMap();
-          std::wostringstream PlayerScore;
-          PlayerScore << p->playerscore;
-          text_s.setString(L"Собрано монет:" + PlayerScore.str());
-          text_s.setPosition(0, 0);
-          window.draw(text_s);
+          p.update(time, model);
+                for (size_t i = 0; i < bullets.size(); i++) {
+                    (*bullets[i]).update(time, model);
+                }
+                model.update(time);
 
-          std::wostringstream PlayerHealth;
-          PlayerHealth << p->health;
-          text_h.setString(L"Здоровье:" + PlayerHealth.str());
-          text_h.setPosition(0, 700);
-          window.draw(text_h);
-          window.draw(p->sprite);//рисуем спрайт объекта p класса player
+                for (size_t i = 0; i < bullets.size(); i++) {
+                    if ((*bullets[i]).life == false) {
+                        bullets.pop_front();
+                    }
+                }
+                p.ability += 0.001 * time;
+                p.bul_ability += 0.001 * time;
+                view.drawMap();
+                std::wostringstream PlayerScore;
+                PlayerScore << p.playerscore;
+                text_s.setString(L"Собрано монет:" + PlayerScore.str());
+                text_s.setPosition(0, 0);
+                window.draw(text_s);
 
-          if (p->ind == 1) {
-              std::wostringstream M;
-              M << (50 - p->ability);
-              text_m.setString(L"Осталось " + M.str() + L" секунд");
-              text_m.setPosition(450, 0);
-              window.draw(text_m);
-              p->ind = 0;
-          }
-          if(model_ptr->getMap().at((p->getY() + p->h / 2) / BlockSize, (p->getX() + p->w / 2) / BlockSize) == BlockType::WATER){
-              text_m.setString(std::to_string(p->leftOnWater));
-              text_m.setPosition(450, 0);
-              window.draw(text_m);
-          }
+                std::wostringstream PlayerHealth;
+                PlayerHealth << p.health;
+                text_h.setString(L"Здоровье:" + PlayerHealth.str());
+                text_h.setPosition(0, 700);
+                window.draw(text_h);
+                window.draw(p.sprite);
+                for (size_t i = 0; i < bullets.size(); i++) {
+                    window.draw((*bullets[i]).sprite);
+                }
+
+
+                if (p.ind == 1) {
+                    std::wostringstream M;
+                    M << (50 - p.ability);
+                    text_m.setString(L"Осталось " + M.str() + L" секунд");
+                    text_m.setPosition(450, 0);
+                    window.draw(text_m);
+                    p.ind = 0;
+                }
+                if(model.getMap().at((p.getY() + p.h / 2) / BlockSize, (p.getX() + p.w / 2) / BlockSize) == BlockType::WATER){
+                    text_m.setString(std::to_string(p.leftOnWater));
+                    text_m.setPosition(450, 0);
+                    window.draw(text_m);
+                }
           break;
           }
       case GameState::DIED:
@@ -157,6 +245,5 @@ int main() {
       }
       window.display();
   }
-
-    return 0;
+  return 0;
 }
