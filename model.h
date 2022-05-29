@@ -8,16 +8,16 @@
 #include <vector>
 struct Model {
 private:
-  Map map;
-  std::vector<Button> buttons;
-  Player plr;
+    Map map;
+    std::vector<Button> buttons;
+    Player plr;
 
 public:
-  GameState state;
-  Map &getMap();
-  Player &getPlayer();
-  void update(float time);
-  const std::vector<Button> &getButtons() const;
-  Model(const std::string &mapFileName);
+    GameState state;
+    Map &getMap();
+    Player &getPlayer();
+    void update(float time);
+    const std::vector<Button> &getButtons() const;
+    Model(const std::string &mapFileName);
 };
 #endif
