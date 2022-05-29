@@ -65,10 +65,7 @@ void View::drawMap() {
                     mapSprite.setTextureRect(sf::IntRect(50, 0, BlockSize, BlockSize));
                     break;
                 case BlockType::SMALL_FLOWER:
-                    if (map.life_of_flowers[row][col] <= 0) {
-                        mapSprite.setTextureRect(sf::IntRect(50, 0, BlockSize, BlockSize));
-                    }
-                    else if (map.score_of_coins[row][col] == 0) {
+                    if (map.score_of_coins[row][col] == 0) {
                         mapSprite.setTextureRect(sf::IntRect(200, 0, BlockSize, BlockSize));
                     }
                     else {
@@ -76,10 +73,7 @@ void View::drawMap() {
                     }
                     break;
                 case BlockType::AVERAGE_FLOWER:
-                    if (map.life_of_flowers[row][col] <= 0) {
-                        mapSprite.setTextureRect(sf::IntRect(50, 0, BlockSize, BlockSize));
-                    }
-                    else if (map.score_of_coins[row][col] == 0) {
+                    if (map.score_of_coins[row][col] == 0) {
                         mapSprite.setTextureRect(sf::IntRect(250, 0, BlockSize, BlockSize));
                     }
                     else {
@@ -87,10 +81,7 @@ void View::drawMap() {
                     }
                     break;
                 case BlockType::BIG_FLOWER:
-                    if (map.life_of_flowers[row][col] <= 0) {
-                        mapSprite.setTextureRect(sf::IntRect(50, 0, BlockSize, BlockSize));
-                    }
-                    else if (map.score_of_coins[row][col] == 0) {
+                    if (map.score_of_coins[row][col] == 0) {
                         mapSprite.setTextureRect(sf::IntRect(300, 0, BlockSize, BlockSize));
                     }
                     else {

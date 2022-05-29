@@ -31,6 +31,10 @@ void Model::update(float time) {
     for (int col = 0; col < map.getCols(); col++) {
         for (int row = 0; row < map.getRows(); row++) {
             if (map.field[row][col] == BlockType::SMALL_FLOWER) {
+                if (map.life_of_flowers[row][col] <= 0) {
+                    map.life_of_flowers[row][col] = 0;
+                    map.field[row][col] = static_cast<BlockType>(static_cast<int>('1') - 48);
+                }
                 if (map.life_of_flowers[row][col] < 20) {
                     map.life_of_flowers[row][col] += 0.1 * time;
                 }
@@ -47,6 +51,10 @@ void Model::update(float time) {
                 }
             }
             else if (map.field[row][col] == BlockType::AVERAGE_FLOWER) {
+                if (map.life_of_flowers[row][col] <= 0) {
+                    map.life_of_flowers[row][col] = 0;
+                    map.field[row][col] = static_cast<BlockType>(static_cast<int>('1') - 48);
+                }
                 if (map.life_of_flowers[row][col] < 40) {
                     map.life_of_flowers[row][col] += 0.1 * time;
                 }
@@ -63,6 +71,10 @@ void Model::update(float time) {
                 }
             }
             else if (map.field[row][col] == BlockType::BIG_FLOWER) {
+                if (map.life_of_flowers[row][col] <= 0) {
+                    map.life_of_flowers[row][col] = 0;
+                    map.field[row][col] = static_cast<BlockType>(static_cast<int>('1') - 48);
+                }
                 if (map.life_of_flowers[row][col] < 60) {
                     map.life_of_flowers[row][col] += 0.1 * time;
                 }

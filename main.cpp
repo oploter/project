@@ -192,10 +192,11 @@ int main() {
                 }
                 model.update(time);
 
-                /*if (bullets.size() > 0 && (*bullets[0]).life == false) {
-                    //bullets.pop_front();
-                    std::cout << "YES\n";
-                }*/
+                for (size_t i = 0; i < bullets.size(); i++) {
+                    if ((*bullets[i]).life == false) {
+                        bullets.pop_front();
+                    }
+                }
                 p.ability += 0.001 * time;
                 p.bul_ability += 0.001 * time;
                 view.drawMap();
@@ -241,7 +242,7 @@ int main() {
                 break;
             }
         }
-
+        //std::cout << model.getMap().time_of_life[13][1] << "\n";
         window.display();
     }
 
