@@ -36,13 +36,13 @@ sf::Texture *View::get_or_create_texture(const std::string &texture_name,
     return textures[texture_name].get();
 }
 View::View(sf::RenderWindow &window_, Model &model_)
-        : window(window_), model(model_), screen_width(window.getSize().x),
+        : window(window_), model(&model_), screen_width(window.getSize().x),
           screen_height(window.getSize().y) {
     get_or_create_texture("map", "../img/blocks.png");
     get_or_create_font("font", "../img/arial.ttf");
 }
 void View::drawMap() {
-    [[maybe_unused]] const Map &map = model.getMap();
+    [[maybe_unused]] const Map &map = model->getMap();
     [[maybe_unused]] auto &mapTexture = *get_or_create_texture("map");
     mapSprite.setTexture(mapTexture);
     for (int col = 0; col < map.getCols(); col++) {
