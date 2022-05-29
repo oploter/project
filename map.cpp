@@ -33,5 +33,7 @@ Map::Map(const std::string &file_name) {
 int Map::getRows() const { return rows; }
 int Map::getCols() const { return cols; }
 BlockType Map::at(int row, int col) const {
+    assert((0 <= row && row < rows));
+    assert((0 <= col && col < cols));
     return field.at(row).at(col); 
 }

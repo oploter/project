@@ -29,9 +29,47 @@ void Player::update(float time, Model& model) //функция "оживлени
         case 2: dx = 0; dy = speed; break;//по иксу задаем нулевое значение, по игреку положительное. получается, что персонаж идет только вниз
         case 3: dx = 0; dy = -speed; break;//по иксу задаем нулевое значение, по игреку отрицательное. получается, что персонаж идет только вверх
     }
-
-    x += dx*time;//то движение из прошлого урока. наше ускорение на время получаем смещение координат и как следствие движение
-    y += dy*time;//аналогично по игреку
+    Map &map = model.getMap();
+    switch(dir){
+        case 0:
+        {
+            dx = speed, dy = 0;
+            if(map.at((y + h / 2) / BlockSize, (x + w) / BlockSize) == BlockType::CONCRETE){
+                break;
+            }
+            x += dx * time;
+        }
+        break;
+        case 1:
+        {
+            dx = -speed, dy = 0;
+            if(map.at((y + h / 2) / BlockSize, x / BlockSize) == BlockType::CONCRETE){
+                break;
+            }
+            x += dx * time;
+        }
+        break;
+        case 2:
+        {
+            dx = 0, dy = speed;
+            if(map.at((y + h) / BlockSize,  (x + w / 2)/ BlockSize) == BlockType::CONCRETE){
+                break;
+            }
+            y += dy * time;
+        }
+        break;
+        case 3:
+        {
+            dx = 0, dy = -speed;
+            if(map.at((y) / BlockSize, (x + w / 2) / BlockSize) == BlockType::CONCRETE){
+                break;
+            }
+            y += dy * time;
+        }
+        break;
+    }
+    //x += dx*time;//то движение из прошлого урока. наше ускорение на время получаем смещение координат и как следствие движение
+    //y += dy*time;//аналогично по игреку
 
     speed = 0;//зануляем скорость, чтобы персонаж остановился.
     sprite.setPosition(x,y); //выводим спрайт в позицию x y , посередине. бесконечно выводим в этой функции, иначе бы наш спрайт стоял на месте.

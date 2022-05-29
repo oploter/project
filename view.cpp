@@ -36,13 +36,13 @@ sf::Texture *View::get_or_create_texture(const std::string &texture_name,
   return textures[texture_name].get();
 }
 View::View(sf::RenderWindow &window_, Model &model_)
-    : window(window_), model(model_), screen_width(window.getSize().x),
+    : window(window_), model(&model_), screen_width(window.getSize().x),
       screen_height(window.getSize().y) {
   get_or_create_texture("map", "../img/blocks.png");
   get_or_create_font("font", "../img/arial.ttf");
 }
 void View::drawMap() {
-  [[maybe_unused]] const Map &map = model.getMap();
+  [[maybe_unused]] const Map &map = model->getMap();
   [[maybe_unused]] auto &mapTexture = *get_or_create_texture("map");
   mapSprite.setTexture(mapTexture);
   for (int col = 0; col < map.getCols(); col++) {
@@ -95,9 +95,12 @@ void View::drawMap() {
 }
 void View::drawMenu() {
   window.clear(sf::Color(100, 100, 100));
-  for (const Button &button : model.getButtons()) {
+  for (const Button &button : model->getButtons()) {
     sf::Text sprite(button.getLabel(), *get_or_create_font("font"), 30);
     sprite.setPosition(button.coordinates().first, button.coordinates().second);
     window.draw(sprite);
   }
+}
+void View::changeModel(Model& new_model){
+    model = &new_model;
 }
