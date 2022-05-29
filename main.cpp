@@ -21,6 +21,7 @@ public:
 
     Bullet(sf::String F, float X, float Y, float W, float H, int dir_){
         dx=0;dy=0;speed=0.15;dir=dir_;
+        life = true;
         File = F;
         w = W; h = H;
         image.loadFromFile("../img/" + File);
@@ -51,7 +52,7 @@ public:
     void interactionWithMap(Model &model) {
         for (int i = y / 50; i < (y + h) / 50; i++) {
             for (int j = x / 50; j < (x + w) / 50; j++) {
-                if (i < 0 || j < 0 || i > model.getMap().getRows() || j > model.getMap().getCols()) {
+                if (i <= 0 || j <= 0 || i >= (model.getMap().getRows() - 1) || j >= (model.getMap().getCols() - 1)) {
                     life = false;
                 }
                 else if (model.getMap().field[i][j] == BlockType::SMALL_FLOWER || model.getMap().field[i][j] == BlockType::AVERAGE_FLOWER || model.getMap().field[i][j] == BlockType::BIG_FLOWER) {
