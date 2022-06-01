@@ -39,9 +39,9 @@ void Model::update(float time) {
               static_cast<BlockType>(static_cast<int>('1') - 48);
         }
         if (map.life_of_flowers[row][col] < 20) {
-          map.life_of_flowers[row][col] += 0.1 * time;
+          map.life_of_flowers[row][col] += 0.002 * time;
         }
-        map.time_of_life[row][col] += 0.1 * time;
+        map.time_of_life[row][col] += 0.002 * time;
         map.score_of_coins[row][col] +=
             ((map.time_of_life[row][col] - map.last_time[row][col]) / 5);
         if (map.time_of_life[row][col] > 50) {
@@ -62,9 +62,9 @@ void Model::update(float time) {
               static_cast<BlockType>(static_cast<int>('1') - 48);
         }
         if (map.life_of_flowers[row][col] < 40) {
-          map.life_of_flowers[row][col] += 0.1 * time;
+          map.life_of_flowers[row][col] += 0.002 * time;
         }
-        map.time_of_life[row][col] += 0.1 * time;
+        map.time_of_life[row][col] += 0.002 * time;
         map.score_of_coins[row][col] +=
             (((map.time_of_life[row][col] - map.last_time[row][col]) / 5) * 2);
         if (map.time_of_life[row][col] > 50) {
@@ -85,9 +85,9 @@ void Model::update(float time) {
               static_cast<BlockType>(static_cast<int>('1') - 48);
         }
         if (map.life_of_flowers[row][col] < 60) {
-          map.life_of_flowers[row][col] += 0.1 * time;
+          map.life_of_flowers[row][col] += 0.002 * time;
         }
-        map.time_of_life[row][col] += 0.1 * time;
+        map.time_of_life[row][col] += 0.002 * time;
         map.score_of_coins[row][col] +=
             (((map.time_of_life[row][col] - map.last_time[row][col]) / 5) * 4);
         map.last_time[row][col] =
