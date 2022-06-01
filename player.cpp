@@ -93,7 +93,7 @@ void Player::interactionWithMap(float time, Model &model) {
         continue;
       }
       if (model.getMap().field[i][j] == BlockType::WATER) {
-        leftOnWater -= time / 2'000;
+        leftOnWater -= time / 100'000;
       }
       if (model.getMap().field[i][j] == BlockType::MOLE) {
         health -= 0.001;
