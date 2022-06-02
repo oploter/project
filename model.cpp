@@ -11,7 +11,7 @@ Model::Model(const std::string &mapFileName) : map(mapFileName), plr("hero.png",
     buttons.emplace_back(L"Выход", 250, 380);
 }
 void Model::update(float time) {
-    switch (map.at((plr.getY() + plr.h / 2) / BlockSize, (plr.getX() + plr.w / 2) / BlockSize))
+    switch (map.at((plr.y + plr.h / 2) / BlockSize, (plr.x + plr.w / 2) / BlockSize))
     {
         case BlockType::WATER:
             if(plr.leftOnWater <= 0){

@@ -11,6 +11,7 @@ public:
     bool life;
     int dir, playerscore;
     float leftOnWater = 3;
+    float CurrentFrame = 0;
     sf::String File;
     sf::Image image;
     sf::Texture texture;
@@ -18,13 +19,5 @@ public:
     Player(sf::String F, float X, float Y, float W, float H);
     void update(float time, Model &model);
     void interactionWithMap(float time, Model &model);
-
-    float getX() {
-        return x;
-    }
-
-    float getY() {
-        return y;
-    }
 };
 #endif

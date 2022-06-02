@@ -14,11 +14,12 @@ Player::Player(sf::String F, float X, float Y, float W, float H){
     dx=0;dy=0;speed=0;dir=0;
     File = F;
     w = W; h = H;
-    image.loadFromFile("../img/" + File);
+    image.loadFromFile("img/" + File);
     texture.loadFromImage(image);
     sprite.setTexture(texture);
     x = X; y = Y;
     sprite.setTextureRect(sf::IntRect(0, 0, w, h));
+    sprite.setPosition(100,100);
 }
 void Player::update(float time, Model& model)
 {
@@ -33,6 +34,7 @@ void Player::update(float time, Model& model)
     x += dx*time;
     y += dy*time;
 
+
     speed = 0;
     sprite.setPosition(x,y);
     interactionWithMap(time, model);
@@ -44,7 +46,7 @@ void Player::interactionWithMap(float time, Model &model) {
                 continue;
             }
             if (model.getMap().field[i][j] == BlockType::WATER) {
-                leftOnWater -= time / 2'000;
+                leftOnWater -= time / 100'000;
             }
             if (model.getMap().field[i][j] == BlockType::MOLE) {
                 health -= 0.001;
