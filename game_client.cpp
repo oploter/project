@@ -278,7 +278,7 @@ int main() {
                 for (size_t i = 0; i < bullets.size(); i++) {
                     if ((*bullets[i]).life == false) {
                         std::cout << "YES" << "\n";
-                        //bullets.pop_front();
+                        bullets.pop_front();
                     }
                 }
 

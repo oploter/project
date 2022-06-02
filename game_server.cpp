@@ -289,6 +289,12 @@ int main() {
                 (*cl).send(packet3);
             }
         }*/
+
+        for (size_t i = 0; i < bullets.size(); i++) {
+            if ((*bullets[i]).life == false) {
+                bullets.pop_front();
+            }
+        }
     }
 
 
