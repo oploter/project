@@ -24,7 +24,7 @@ public:
         life = true;
         File = F;
         w = W; h = H;
-        image.loadFromFile("img/" + File);
+        image.loadFromFile("../img/" + File);
         texture.loadFromImage(image);
         sprite.setTexture(texture);
         x = X; y = Y;//координата появления спрайта
@@ -76,7 +76,7 @@ std::deque <std::unique_ptr<Bullet>> bullets;
 
 int main() {
     sf::RenderWindow window(sf::VideoMode(750, 750), "Window");
-    Model model("map.txt");
+    Model model("../map.txt");
     View view(window, model);
 
     Player& p = model.getPlayer();//создаем объект p класса player,задаем "hero.png" как имя файла+расширение, далее координата Х,У, ширина, высота.
@@ -85,21 +85,21 @@ int main() {
     sf::Clock clock;
 
     sf::Font score;
-    score.loadFromFile("arial.ttf");
+    score.loadFromFile("../arial.ttf");
     sf::Text text_s("", score, 20);
     //text.setOutlineColor(sf::Color::Black);
     text_s.setFillColor(sf::Color::Black);
     text_s.setStyle(sf::Text::Bold | sf::Text::Underlined);
 
     sf::Font Health;
-    Health.loadFromFile("arial.ttf");
+    Health.loadFromFile("../arial.ttf");
     sf::Text text_h("", Health, 20);
     //text.setOutlineColor(sf::Color::Black);
     text_h.setFillColor(sf::Color::Black);
     text_h.setStyle(sf::Text::Bold | sf::Text::Underlined);
 
     sf::Font Message;
-    Message.loadFromFile("arial.ttf");
+    Message.loadFromFile("../arial.ttf");
     sf::Text text_m("", Message, 20);
     //text.setOutlineColor(sf::Color::Black);
     text_m.setFillColor(sf::Color::Red);
@@ -108,7 +108,7 @@ int main() {
     while (window.isOpen()) {
         float time = clock.getElapsedTime().asMicroseconds();
         clock.restart();
-        time = time / 10;
+        time = time / 500;
         sf::Event ev;
 
         while (window.pollEvent(ev)) {
@@ -126,63 +126,57 @@ int main() {
                 }
                 break;
             }
+        }
+
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) && p.getX() > 0) { //если нажата клавиша стрелка влево или англ буква А
+            p.dir = 1; p.speed = 0.1;//dir =1 - направление вверх, speed =0.1 - скорость движения. Заметьте - время мы уже здесь ни на что не умножаем и нигде не используем каждый раз
+            CurrentFrame += 0.005*time; //служит для прохождения по "кадрам". переменная доходит до трех суммируя произведение времени и скорости. изменив 0.005 можно изменить скорость анимации
+            if (CurrentFrame > 4) CurrentFrame -= 4; //проходимся по кадрам с первого по третий включительно. если пришли к третьему кадру - откидываемся назад.
+            p.sprite.setTextureRect(sf::IntRect(25 * int(CurrentFrame), 84, 25, 42)); //проходимся по координатам Х. получается 96,96*2,96*3 и опять 96
+        }
+
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) && p.getX() < window.getSize().x) {
+            p.dir = 0; p.speed = 0.1;//направление вправо, см выше
+            CurrentFrame += 0.005*time; //служит для прохождения по "кадрам". переменная доходит до трех суммируя произведение времени и скорости. изменив 0.005 можно изменить скорость анимации
+            if (CurrentFrame > 4) CurrentFrame -= 4; //проходимся по кадрам с первого по третий включительно. если пришли к третьему кадру - откидываемся назад.
+            p.sprite.setTextureRect(sf::IntRect(25 * int(CurrentFrame), 42, 25, 42)); //проходимся по координатам Х. получается 96,96*2,96*3 и опять 96
+        }
+
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) && p.getY() > 0) {
+            p.dir = 3; p.speed = 0.1;//направление вниз, см выше
+            CurrentFrame += 0.005*time; //служит для прохождения по "кадрам". переменная доходит до трех суммируя произведение времени и скорости. изменив 0.005 можно изменить скорость анимации
+            if (CurrentFrame > 4) CurrentFrame -= 4; //проходимся по кадрам с первого по третий включительно. если пришли к третьему кадру - откидываемся назад.
+            p.sprite.setTextureRect(sf::IntRect(25 * int(CurrentFrame), 0, 25, 42)); //проходимся по координатам Х. получается 96,96*2,96*3 и опять 96
+        }
+
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) && p.getY() < window.getSize().y) {
+            p.dir = 2; p.speed = 0.1;//направление вверх, см выше
+            CurrentFrame += 0.005*time; //служит для прохождения по "кадрам". переменная доходит до трех суммируя произведение времени и скорости. изменив 0.005 можно изменить скорость анимации
+            if (CurrentFrame > 4) CurrentFrame -= 4; //проходимся по кадрам с первого по третий включительно. если пришли к третьему кадру - откидываемся назад.
+            p.sprite.setTextureRect(sf::IntRect(25 * int(CurrentFrame), 125, 25, 42)); //проходимся по координатам Х. получается 96,96*2,96*3 и опять 96
+        }
+
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::P))) {
+            int row = p.getY() / 50;
+            int col = p.getX() / 50;
+            if (p.ability >= 50 && model.getMap().field[row][col] == BlockType::GREEN) {
+                model.getMap().life_of_flowers[row][col] = 20;
+                model.getMap().field[row][col] = static_cast<BlockType>(static_cast<int>('4') - 48);
+                p.ability = 0;
+            }
             else {
-                if(ev.type == sf::Event::KeyPressed) {
-                    auto code = ev.key.code;
-                    if ((code == sf::Keyboard::Left) && p.x > 0) {
-                        p.dir = 1; p.speed = 0.1;
-                        CurrentFrame += 0.005*time;
-                        if (CurrentFrame > 4) CurrentFrame -= 4;
-                        p.sprite.setTextureRect(sf::IntRect(25 * int(CurrentFrame), 84, 25, 42));
-                    }
-
-                    else if ((code == sf::Keyboard::Right) && p.x < window.getSize().x) {
-                        p.dir = 0; p.speed = 0.1;
-                        CurrentFrame += 0.005*time;
-                        if (CurrentFrame > 4) CurrentFrame -= 4;
-                        p.sprite.setTextureRect(sf::IntRect(25 * int(CurrentFrame), 42, 25, 42));
-                    }
-
-                    else if ((code == sf::Keyboard::Up) && p.y > 0) {
-                        p.dir = 3; p.speed = 0.1;
-                        CurrentFrame += 0.005*time;
-                        if (CurrentFrame > 4) CurrentFrame -= 4;
-                        p.sprite.setTextureRect(sf::IntRect(25 * int(CurrentFrame), 0, 25, 42));
-                    }
-
-                    else if ((code == sf::Keyboard::Down) && p.y < window.getSize().y) {
-                        p.dir = 2; p.speed = 0.1;
-                        CurrentFrame += 0.005*time;
-                        if (CurrentFrame > 4) CurrentFrame -= 4;
-                        p.sprite.setTextureRect(sf::IntRect(25 * int(CurrentFrame), 125, 25, 42));
-                    }
-
-                    else if (code == sf::Keyboard::P) {
-                        int row = p.y / 50;
-                        int col = p.x / 50;
-                        if (p.ability >= 50 && model.getMap().field[row][col] == BlockType::GREEN) {
-                            model.getMap().life_of_flowers[row][col] = 20;
-                            model.getMap().field[row][col] = static_cast<BlockType>(static_cast<int>('4') - 48);
-                            p.ability = 0;
-                        }
-                        else {
-                            p.ind = 1;
-                            //std::cout << "До следующей возможности посадить цветок осталось " << 50 - p.ability << " секунд" << "\n";
-                        }
-                    }
-
-                    else if (code == sf::Keyboard::S) {
-                        if (p.bul_ability >= 1) {
-                            bullets.emplace_back(std::make_unique<Bullet>("bullet.png",p.x,p.y,16.0, 16.0, p.dir));
-                            p.bul_ability = 0;
-                        }
-                        //std::cout << bullets.size() << "\n";
-                    }
-                }
+                p.ind = 1;
+                //std::cout << "До следующей возможности посадить цветок осталось " << 50 - p.ability << " секунд" << "\n";
             }
         }
 
-
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::S))) {
+          if (p.bul_ability >= 50) {
+              bullets.emplace_back(std::make_unique<Bullet>("bullet.png",p.x,p.y,16.0, 16.0, p.dir));
+              p.bul_ability = 0;
+          }
+          //std::cout << bullets.size() << "\n";
+        }
         window.clear();
         switch (model.state)
         {
@@ -194,7 +188,6 @@ int main() {
             case GameState::GAME:
             {
                 p.update(time, model);
-                std::cout << p.x << " " << p.y << "\n";
                 for (size_t i = 0; i < bullets.size(); i++) {
                     (*bullets[i]).update(time, model);
                 }
@@ -233,7 +226,7 @@ int main() {
                     window.draw(text_m);
                     p.ind = 0;
                 }
-                if(model.getMap().at((p.y + p.h / 2) / BlockSize, (p.x + p.w / 2) / BlockSize) == BlockType::WATER){
+                if(model.getMap().at((p.getY() + p.h / 2) / BlockSize, (p.getX() + p.w / 2) / BlockSize) == BlockType::WATER){
                     text_m.setString(std::to_string(p.leftOnWater));
                     text_m.setPosition(450, 0);
                     window.draw(text_m);

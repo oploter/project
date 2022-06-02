@@ -7,6 +7,7 @@ struct Map {
 private:
   int rows = 0;
   int cols = 0;
+
 public:
   std::vector<std::vector<BlockType>> field;
   std::vector<std::vector<int>> time_of_life;
