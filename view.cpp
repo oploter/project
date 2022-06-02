@@ -6,6 +6,7 @@
 #include <exception>
 #include <iostream>
 #include <string>
+#include <cassert>
 #include <vector>
 sf::Font *View::get_or_create_font(const std::string &font_name,
                                    const std::string &path_to_font) {
@@ -38,6 +39,7 @@ sf::Texture *View::get_or_create_texture(const std::string &texture_name,
 View::View(sf::RenderWindow &window_, Model &model_)
     : window(window_), model(&model_), screen_width(window.getSize().x),
       screen_height(window.getSize().y) {
+  get_or_create_texture("enemy", "../img/enemy.png");
   get_or_create_texture("map", "../img/blocks.png");
   get_or_create_font("font", "../img/arial.ttf");
 }
@@ -48,6 +50,9 @@ void View::drawMap() {
   for (int col = 0; col < map.getCols(); col++) {
     for (int row = 0; row < map.getRows(); row++) {
       mapSprite.setPosition(col * BlockSize, row * BlockSize);
+      if(map.time_hurt[row][col] > 0){
+        mapSprite.setColor(sf::Color::Red);
+      }
       switch (map.at(row, col)) {
       case BlockType::WATER:
         mapSprite.setTextureRect(sf::IntRect(100, 0, BlockSize, BlockSize));
@@ -100,3 +105,30 @@ void View::drawMenu() {
   }
 }
 void View::changeModel(Model &new_model) { model = &new_model; }
+void View::drawEnemy(Enemy& enemy, float tm){
+    enemy.sprite.setPosition(enemy.getPos().second - enemy.w / 2, enemy.getPos().first - enemy.h / 2);
+    switch (enemy.getDirection())
+    {
+    case Direction::LEFT:
+        enemy.sprite.setTextureRect(sf::IntRect(25 * static_cast<int>(enemy.currFrame), 84, 25, 42));
+        break;
+    case Direction::RIGHT:
+        enemy.sprite.setTextureRect(sf::IntRect(25 * static_cast<int>(enemy.currFrame), 42, 25, 42));
+        break;  
+    case Direction::UP:
+        enemy.sprite.setTextureRect(sf::IntRect(25 * static_cast<int>(enemy.currFrame), 0, 25, 42));
+        break;
+    case Direction::DOWN:
+        enemy.sprite.setTextureRect(sf::IntRect(25 * static_cast<int>(enemy.currFrame), 125, 25, 42));
+        break;
+    case Direction::STOP:
+        enemy.sprite.setTextureRect(sf::IntRect(0, 125, 25, 42));
+        break;
+    }
+    enemy.currFrame += tm / 10000;
+    if(enemy.currFrame >= 4){
+        enemy.currFrame = 0;
+    }
+    assert(enemy.currFrame < 4);
+    window.draw(enemy.sprite);
+}

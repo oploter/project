@@ -26,24 +26,6 @@ Player::Player(sf::String F, float X, float Y, float W, float H) {
   sprite.setTextureRect(sf::IntRect(0, 0, w, h));
 }
 void Player::update(float time, Model &model) {
-  switch (dir) {
-  case 0:
-    dx = speed;
-    dy = 0;
-    break;
-  case 1:
-    dx = -speed;
-    dy = 0;
-    break;
-  case 2:
-    dx = 0;
-    dy = speed;
-    break;
-  case 3:
-    dx = 0;
-    dy = -speed;
-    break;
-  }
   Map &map = model.getMap();
   switch (dir) {
   case 0: {
@@ -93,7 +75,7 @@ void Player::interactionWithMap(float time, Model &model) {
         continue;
       }
       if (model.getMap().field[i][j] == BlockType::WATER) {
-        leftOnWater -= time / 2'000;
+        leftOnWater -= time / 100'000;
       }
       if (model.getMap().field[i][j] == BlockType::MOLE) {
         health -= 0.001;

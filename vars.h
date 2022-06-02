@@ -11,6 +11,8 @@ enum class BlockType {
   BIG_FLOWER
 };
 enum class GameState { MENU = 0, GAME, DIED };
+enum class Direction { LEFT, RIGHT, DOWN, UP, STOP };
+enum class Action { RANDOM, ATTACK };
 const int CellSize = 10;
-const int BlockSize = 50;
+const float BlockSize = 50;
 #endif

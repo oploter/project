@@ -2,6 +2,7 @@
 #define VIEW_H
 #include "model.h"
 #include "vars.h"
+#include "enemy.h"
 #include <SFML/Graphics.hpp>
 #include <string>
 #include <vector>
@@ -22,6 +23,7 @@ public:
   View(sf::RenderWindow &window_, Model &model_);
   void drawMap();
   void drawMenu();
+  void drawEnemy(Enemy& enemy, float tm);
   void changeModel(Model &new_model);
 };
 #endif
