@@ -68,6 +68,9 @@ struct Bullet {
                     life = false;
                     model.getMap().life_of_flowers[i][j] -= 20;
                 }
+                else if (model.getMap().field[i][j] == BlockType::CONCRETE) {
+                    life = false;
+                }
                 else if (model.getMap().map_of_players[i][j] != "") {
                     std::string player_name = model.getMap().map_of_players[i][j];
                     if (player_name != name) {

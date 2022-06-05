@@ -368,6 +368,7 @@ int main() {
             packet2 << name << 3;
             socket.send(packet2);
         }
+        //std::cout << names["b"] << "\n";
         window.display();
     }
 }
