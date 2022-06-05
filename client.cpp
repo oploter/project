@@ -19,6 +19,7 @@ void F() {
 }
 int main() {
     ip = sf::IpAddress::getLocalAddress();
+    std::cout << ip.toString();
     if(socket.connect(ip, 2000) != sf::Socket::Done) {
         std::cout << "Error!\n";
     }

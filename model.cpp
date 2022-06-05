@@ -6,7 +6,7 @@
 Map &Model::getMap() { return map; }
 Player &Model::getPlayer() { return plr; }
 const std::vector<Button> &Model::getButtons() const { return buttons; }
-Model::Model(const std::string &mapFileName) : map(mapFileName), plr("hero.png",0,0,25.0, 41.75), state(GameState::MENU) {
+Model::Model(const std::string &mapFileName) : map(mapFileName), plr("hero.png",100,100,25.0, 41.75), state(GameState::MENU) {
     buttons.emplace_back(L"Одиночная игра", 250, 350);
     buttons.emplace_back(L"Выход", 250, 380);
 }

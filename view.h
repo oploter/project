@@ -9,7 +9,7 @@ struct View {
 private:
   sf::RenderWindow &window;
   sf::Sprite mapSprite;
-  Model model;
+  Model *model;
   int screen_width, screen_height;
 
 public:

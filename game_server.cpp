@@ -11,20 +11,26 @@
 #include <vector>
 #include <mutex>
 #include <utility>
+#include <thread>
+
+std::map <std::string, Player> players;
+std::map <std::string, bool> names;
 
 struct Bullet {
     float x, y;
     float w, h, dx, dy, speed;
     bool life;
     int dir;
+    std::string name;
     sf::String File;
     sf::Image image;
     sf::Texture texture;
     sf::Sprite sprite;
 
-    Bullet(sf::String F, float X, float Y, float W, float H, int dir_){
+    Bullet(sf::String F, float X, float Y, float W, float H, int dir_, const std::string &name_){
         dx=0;dy=0;speed=0.15;dir=dir_;
         life = true;
+        name = name_;
         File = F;
         w = W; h = H;
         image.loadFromFile("img/" + File);
@@ -62,6 +68,13 @@ struct Bullet {
                     life = false;
                     model.getMap().life_of_flowers[i][j] -= 20;
                 }
+                else if (model.getMap().map_of_players[i][j] != "") {
+                    std::string player_name = model.getMap().map_of_players[i][j];
+                    if (player_name != name) {
+                        players.at(player_name).health -= 20;
+                        life = false;
+                    }
+                }
             }
         }
     }
@@ -74,7 +87,6 @@ sf::TcpListener listener;
 sf::SocketSelector selector;
 std::mutex m;
 std::vector <std::unique_ptr<sf::TcpSocket*>> clients;
-std::map <std::string, Player> players;
 Model model("map.txt");
 sf::Clock clock1;
 float time1;
@@ -94,6 +106,7 @@ void F() {
                     packet1 >> nameRec;
                     if (players.find(nameRec) == players.end()) {
                         players.emplace(nameRec, model.getPlayer());
+                        names.emplace(nameRec, true);
                         if (players.size() <= count) {
                             for (auto name : players) {
                                 packet2.clear();
@@ -113,60 +126,87 @@ void F() {
 
                     packet1 >> command;
 
-                    if (command == 2) {
-                        std::string button;
-                        packet1 >> button;
-                        if (button == "L") {
-                            players.at(nameRec).dir = 1; players.at(nameRec).speed = 0.1;
-                            players.at(nameRec).CurrentFrame += 0.005*time1;
-                            if (players.at(nameRec).CurrentFrame > 4) players.at(nameRec).CurrentFrame -= 4;
-                            players.at(nameRec).sprite.setTextureRect(sf::IntRect(25 * int(players.at(nameRec).CurrentFrame), 84, 25, 42));
-                            packet2.clear();
-                            packet2 << nameRec << 2 << players.at(nameRec).dir << players.at(nameRec).speed << players.at(nameRec).CurrentFrame << "L";
-                        }
-                        else if (button == "R") {
-                            players.at(nameRec).dir = 0; players.at(nameRec).speed = 0.1;
-                            players.at(nameRec).CurrentFrame += 0.005*time1;
-                            if (players.at(nameRec).CurrentFrame > 4) players.at(nameRec).CurrentFrame -= 4;
-                            players.at(nameRec).sprite.setTextureRect(sf::IntRect(25 * int(players.at(nameRec).CurrentFrame), 42, 25, 42));
-                            packet2.clear();
-                            packet2 << nameRec << 2 << players.at(nameRec).dir << players.at(nameRec).speed << players.at(nameRec).CurrentFrame << "R";
-                        }
-                        else if (button == "U") {
-                            players.at(nameRec).dir = 3; players.at(nameRec).speed = 0.1;
-                            players.at(nameRec).CurrentFrame += 0.005*time1;
-                            if (players.at(nameRec).CurrentFrame > 4) players.at(nameRec).CurrentFrame -= 4;
-                            players.at(nameRec).sprite.setTextureRect(sf::IntRect(25 * int(players.at(nameRec).CurrentFrame), 0, 25, 42));
-                            packet2.clear();
-                            packet2 << nameRec << 2 << players.at(nameRec).dir << players.at(nameRec).speed << players.at(nameRec).CurrentFrame << "U";
-                        }
-                        else if (button == "D") {
-                            players.at(nameRec).dir = 2; players.at(nameRec).speed = 0.1;
-                            players.at(nameRec).CurrentFrame += 0.005*time1;
-                            if (players.at(nameRec).CurrentFrame > 4) players.at(nameRec).CurrentFrame -= 4;
-                            players.at(nameRec).sprite.setTextureRect(sf::IntRect(25 * int(players.at(nameRec).CurrentFrame), 125, 25, 42));
-                            packet2.clear();
-                            packet2 << nameRec << 2 << players.at(nameRec).dir << players.at(nameRec).speed << players.at(nameRec).CurrentFrame << "D";
-                        }
-                        else if (button == "P") {
-                            int row = players.at(nameRec).y / 50;
-                            int col = players.at(nameRec).x / 50;
-                            model.getMap().life_of_flowers[row][col] = 20;
-                            model.getMap().field[row][col] = static_cast<BlockType>(static_cast<int>('4') - 48);
-                            packet2.clear();
-                            packet2 << nameRec << 3 << row << col;
-                        }
-                        else if (button == "S") {
-                            bullets.emplace_back(std::make_unique<Bullet>("bullet.png",players.at(nameRec).x,players.at(nameRec).y,16.0, 16.0, players.at(nameRec).dir));
-                            packet2.clear();
-                            packet2 << nameRec << 4;
-                        }
-                        for (auto t = clients.begin(); t != clients.end(); t++) {
-                            sf::TcpSocket *cl = **t;
-                            if (selector.isReady(*cl)) {
-                                (*cl).send(packet2);
+                    if (names[nameRec] == true) {
+                        if (command == 2) {
+                            std::string button;
+                            packet1 >> button;
+                            if (button == "L") {
+                                players.at(nameRec).dir = 1;
+                                players.at(nameRec).speed = 0.1;
+                                players.at(nameRec).CurrentFrame += 0.005 * time1;
+                                if (players.at(nameRec).CurrentFrame > 4) players.at(nameRec).CurrentFrame -= 4;
+                                players.at(nameRec).sprite.setTextureRect(
+                                        sf::IntRect(25 * int(players.at(nameRec).CurrentFrame), 84, 25, 42));
+                                packet2.clear();
+                                packet2 << nameRec << 2 << players.at(nameRec).dir << players.at(nameRec).speed
+                                        << players.at(nameRec).CurrentFrame << "L";
+                            } else if (button == "R") {
+                                players.at(nameRec).dir = 0;
+                                players.at(nameRec).speed = 0.1;
+                                players.at(nameRec).CurrentFrame += 0.005 * time1;
+                                if (players.at(nameRec).CurrentFrame > 4) players.at(nameRec).CurrentFrame -= 4;
+                                players.at(nameRec).sprite.setTextureRect(
+                                        sf::IntRect(25 * int(players.at(nameRec).CurrentFrame), 42, 25, 42));
+                                packet2.clear();
+                                packet2 << nameRec << 2 << players.at(nameRec).dir << players.at(nameRec).speed
+                                        << players.at(nameRec).CurrentFrame << "R";
+                            } else if (button == "U") {
+                                players.at(nameRec).dir = 3;
+                                players.at(nameRec).speed = 0.1;
+                                players.at(nameRec).CurrentFrame += 0.005 * time1;
+                                if (players.at(nameRec).CurrentFrame > 4) players.at(nameRec).CurrentFrame -= 4;
+                                players.at(nameRec).sprite.setTextureRect(
+                                        sf::IntRect(25 * int(players.at(nameRec).CurrentFrame), 0, 25, 42));
+                                packet2.clear();
+                                packet2 << nameRec << 2 << players.at(nameRec).dir << players.at(nameRec).speed
+                                        << players.at(nameRec).CurrentFrame << "U";
+                            } else if (button == "D") {
+                                players.at(nameRec).dir = 2;
+                                players.at(nameRec).speed = 0.1;
+                                players.at(nameRec).CurrentFrame += 0.005 * time1;
+                                if (players.at(nameRec).CurrentFrame > 4) players.at(nameRec).CurrentFrame -= 4;
+                                players.at(nameRec).sprite.setTextureRect(
+                                        sf::IntRect(25 * int(players.at(nameRec).CurrentFrame), 125, 25, 42));
+                                packet2.clear();
+                                packet2 << nameRec << 2 << players.at(nameRec).dir << players.at(nameRec).speed
+                                        << players.at(nameRec).CurrentFrame << "D";
+                            } else if (button == "P") {
+                                int row = players.at(nameRec).y / 50;
+                                int col = players.at(nameRec).x / 50;
+                                if (players.at(nameRec).ability >= 10) {
+                                    if (model.getMap().field[row][col] == BlockType::GREEN) {
+                                        model.getMap().life_of_flowers[row][col] = 20;
+                                        model.getMap().field[row][col] = static_cast<BlockType>(static_cast<int>('4') -
+                                                                                                48);
+                                        players.at(nameRec).ability = 0;
+                                    }
+                                } else {
+                                    players.at(nameRec).ind = 1;
+                                }
+                                packet2.clear();
+                                packet2 << nameRec << 3 << row << col << players.at(nameRec).ind;
+                                players.at(nameRec).ind = 0;
+                            } else if (button == "S") {
+                                if (players.at(nameRec).bul_ability >= 10 && players.at(nameRec).bullets > 0) {
+                                    bullets.emplace_back(std::make_unique<Bullet>("bullet.png", players.at(nameRec).x,
+                                                                                  players.at(nameRec).y, 16.0, 16.0,
+                                                                                  players.at(nameRec).dir, nameRec));
+                                    packet2.clear();
+                                    packet2 << nameRec << 4;
+                                    players.at(nameRec).bul_ability = 0;
+                                    players.at(nameRec).bullets -= 1;
+                                }
+                            }
+                            for (auto t = clients.begin(); t != clients.end(); t++) {
+                                sf::TcpSocket *cl = **t;
+                                if (selector.isReady(*cl)) {
+                                    (*cl).send(packet2);
+                                }
                             }
                         }
+                    }
+                    if (command == 3) {
+                        players.at(nameRec).life = false;
                     }
 
                     m.unlock();
@@ -220,21 +260,27 @@ int main() {
         }*/
 
         for (auto &u : players) {
-            u.second.update(time1, model);
-            // std::cout << u.second.x << " " << u.second.y << " " << u.second.speed << " " << u.second.dir << "\n";
-            packet3.clear();
-            packet3 << u.first << 5 << u.second.x << u.second.y << u.second.leftOnWater << u.second.health << u.second.playerscore;
-            int rows = model.getMap().getRows();
-            int cols = model.getMap().getCols();
-            for (int i = 0; i < rows; i++) {
-                for (int j = 0; j < cols; j++) {
-                    packet3 << model.getMap().score_of_coins[i][j];
+            if (names[u.first] == true) {
+                u.second.update(time1, model, u.first);
+                u.second.ability += 0.001 * time1;
+                u.second.bul_ability += 0.001 * time1;
+                // std::cout << u.second.x << " " << u.second.y << " " << u.second.speed << " " << u.second.dir << "\n";
+                packet3.clear();
+                packet3 << u.first << 5 << u.second.x << u.second.y << u.second.leftOnWater << u.second.health
+                        << u.second.playerscore << u.second.ability << u.second.bul_ability << u.second.bullets
+                        << u.second.life;
+                int rows = model.getMap().getRows();
+                int cols = model.getMap().getCols();
+                for (int i = 0; i < rows; i++) {
+                    for (int j = 0; j < cols; j++) {
+                        packet3 << model.getMap().score_of_coins[i][j];
+                    }
                 }
-            }
-            for (auto t = clients.begin(); t != clients.end(); t++) {
-                sf::TcpSocket *cl = **t;
-                if (selector.isReady(*cl)) {
-                    (*cl).send(packet3);
+                for (auto t = clients.begin(); t != clients.end(); t++) {
+                    sf::TcpSocket *cl = **t;
+                    if (selector.isReady(*cl)) {
+                        (*cl).send(packet3);
+                    }
                 }
             }
         }
@@ -283,19 +329,30 @@ int main() {
             }
         }
 
-        /*for (auto t = clients.begin(); t != clients.end(); t++) {
+        for (auto t = clients.begin(); t != clients.end(); t++) {
             sf::TcpSocket *cl = **t;
             if (selector.isReady(*cl)) {
                 (*cl).send(packet3);
             }
-        }*/
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
         for (size_t i = 0; i < bullets.size(); i++) {
             if ((*bullets[i]).life == false) {
                 bullets.pop_front();
+                packet3.clear();
+                packet3 << "name" << 8;
+                for (auto t = clients.begin(); t != clients.end(); t++) {
+                    sf::TcpSocket *cl = **t;
+                    if (selector.isReady(*cl)) {
+                        (*cl).send(packet3);
+                    }
+                }
             }
         }
+
+        for (auto u : players) {
+            names[u.first] = u.second.life;
+        }
     }
-
-
 }
