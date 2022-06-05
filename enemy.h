@@ -23,6 +23,7 @@ struct Enemy {
   public:
     Enemy(){}
     Enemy(Map &map, int id_);
+    virtual ~Enemy() = default;
     void findPath(int fromRow, int fromCol, int toRow, int toCol,
                   std::vector<std::pair<int, int>> &p, Map &map);
     void setPosition(std::pair<float, float> pos_,
