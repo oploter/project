@@ -242,6 +242,8 @@ int main() {
     selector.add(listener);
     sf::Thread thread1(&G);
     thread1.launch();
+    sf::IpAddress ip = sf::IpAddress::getLocalAddress();
+    std::cout << "Ip: " << ip.toString() << "\n";
     std::cout << "Enter count of players:\n";
     std::cin >> count;
     sf::Thread thread2(&F);

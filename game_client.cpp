@@ -144,9 +144,13 @@ void F() {
 }
 
 int main() {
-    ip = sf::IpAddress::getLocalAddress();
+    //ip = sf::IpAddress::getLocalAddress();
     //std::cout << ip.toString() << "\n";
     //ip = sf::IpAddress("192.168.43.253");
+    std::cout << "Enter ip: ";
+    std::string Ip;
+    std::cin >> Ip;
+    ip = sf::IpAddress(Ip);
     if(socket.connect(ip, 2000) != sf::Socket::Done) {
         std::cout << "Error!\n";
     }
