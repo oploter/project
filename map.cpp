@@ -26,6 +26,7 @@ Map::Map(const std::string &file_name) {
   last_time.resize(rows, std::vector<int>(cols, 0));
   life_of_flowers.resize(rows, std::vector<int>(cols, 0));
   map_of_players.resize(rows, std::vector<std::string>(cols, ""));
+  time_hurt.resize(rows, std::vector<float>(cols, 0));
   for (int row = 0; row < rows; row++) {
     for (int col = 0; col < cols; col++) {
       char type;

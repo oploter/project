@@ -41,6 +41,7 @@ View::View(sf::RenderWindow &window_, Model &model_)
           screen_height(window.getSize().y) {
     get_or_create_texture("map", "img/blocks.png");
     get_or_create_font("font", "img/arial.ttf");
+    enemySprite.setTexture(*get_or_create_texture("enemy", "img/enemy.png", true));
 }
 void View::drawMap() {
     [[maybe_unused]] const Map &map = model->getMap();
@@ -49,7 +50,11 @@ void View::drawMap() {
     for (int col = 0; col < map.getCols(); col++) {
         for (int row = 0; row < map.getRows(); row++) {
             mapSprite.setPosition(col * BlockSize, row * BlockSize);
-            switch (map.at(row, col)) {
+            BlockType t = map.at(row, col);
+            if(map.time_hurt[row][col] > 0 && (t == BlockType::SMALL_FLOWER || t == BlockType::AVERAGE_FLOWER || t == BlockType::BIG_FLOWER)){
+                mapSprite.setColor(sf::Color::Red);
+            }
+            switch (t) {
                 case BlockType::WATER:
                     mapSprite.setTextureRect(sf::IntRect(100, 0, BlockSize, BlockSize));
                     break;
@@ -91,6 +96,7 @@ void View::drawMap() {
                     break;
             }
             window.draw(mapSprite);
+            mapSprite.setColor(sf::Color::White);
         }
     }
 }
@@ -100,5 +106,32 @@ void View::drawMenu() {
         sf::Text sprite(button.getLabel(), *get_or_create_font("font"), 30);
         sprite.setPosition(button.coordinates().first, button.coordinates().second);
         window.draw(sprite);
+    }
+}
+void View::drawEnemies(std::map<int, ClientEnemy>& enemies, float time){
+    for(auto it = enemies.begin(); it != enemies.end(); it++){
+        ClientEnemy& enemy = it->second;
+        switch (enemy.dir)
+        {
+        case Direction::LEFT:
+            enemySprite.setTextureRect(sf::IntRect(25 * int(enemy.currFrame), 84, 25, 42));
+            break;
+        case Direction::RIGHT:
+            enemySprite.setTextureRect(sf::IntRect(25 * int(enemy.currFrame), 42, 25, 42));
+            break;  
+        case Direction::DOWN:
+            enemySprite.setTextureRect(sf::IntRect(25 * int(enemy.currFrame), 125, 25, 42));
+            break;
+        case Direction::UP:
+            enemySprite.setTextureRect(sf::IntRect(25 * int(enemy.currFrame), 0, 25, 42));
+            break;
+        case Direction::STOP:
+            enemySprite.setTextureRect(sf::IntRect(0, 125, 25, 42));
+            break;
+        default:
+            break;
+        }   
+        enemySprite.setPosition(enemy.pos.second, enemy.pos.first);
+        window.draw(enemySprite);
     }
 }

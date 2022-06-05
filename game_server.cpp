@@ -68,9 +68,6 @@ struct Bullet {
                     life = false;
                     model.getMap().life_of_flowers[i][j] -= 20;
                 }
-                else if (model.getMap().field[i][j] == BlockType::CONCRETE) {
-                    life = false;
-                }
                 else if (model.getMap().map_of_players[i][j] != "") {
                     std::string player_name = model.getMap().map_of_players[i][j];
                     if (player_name != name) {
@@ -85,12 +82,13 @@ struct Bullet {
 
 std::size_t count;
 std::string message = "";
-sf::Packet packet1, packet2, packet3;
+sf::Packet packet1, packet2, packet3, packetWithEnemies;
 sf::TcpListener listener;
 sf::SocketSelector selector;
 std::mutex m;
 std::vector <std::unique_ptr<sf::TcpSocket*>> clients;
-Model model("map.txt");
+
+ServerModel model("map.txt", 1 + (rand() % 5));
 sf::Clock clock1;
 float time1;
 std::deque <std::unique_ptr<Bullet>> bullets;
@@ -135,7 +133,7 @@ void F() {
                             packet1 >> button;
                             if (button == "L") {
                                 players.at(nameRec).dir = 1;
-                                players.at(nameRec).speed = 0.1;
+                                players.at(nameRec).speed = BlockSize* 2;
                                 players.at(nameRec).CurrentFrame += 0.005 * time1;
                                 if (players.at(nameRec).CurrentFrame > 4) players.at(nameRec).CurrentFrame -= 4;
                                 players.at(nameRec).sprite.setTextureRect(
@@ -145,7 +143,7 @@ void F() {
                                         << players.at(nameRec).CurrentFrame << "L";
                             } else if (button == "R") {
                                 players.at(nameRec).dir = 0;
-                                players.at(nameRec).speed = 0.1;
+                                players.at(nameRec).speed = BlockSize * 2;
                                 players.at(nameRec).CurrentFrame += 0.005 * time1;
                                 if (players.at(nameRec).CurrentFrame > 4) players.at(nameRec).CurrentFrame -= 4;
                                 players.at(nameRec).sprite.setTextureRect(
@@ -155,7 +153,7 @@ void F() {
                                         << players.at(nameRec).CurrentFrame << "R";
                             } else if (button == "U") {
                                 players.at(nameRec).dir = 3;
-                                players.at(nameRec).speed = 0.1;
+                                players.at(nameRec).speed = BlockSize * 2;
                                 players.at(nameRec).CurrentFrame += 0.005 * time1;
                                 if (players.at(nameRec).CurrentFrame > 4) players.at(nameRec).CurrentFrame -= 4;
                                 players.at(nameRec).sprite.setTextureRect(
@@ -165,7 +163,7 @@ void F() {
                                         << players.at(nameRec).CurrentFrame << "U";
                             } else if (button == "D") {
                                 players.at(nameRec).dir = 2;
-                                players.at(nameRec).speed = 0.1;
+                                players.at(nameRec).speed = BlockSize * 2;
                                 players.at(nameRec).CurrentFrame += 0.005 * time1;
                                 if (players.at(nameRec).CurrentFrame > 4) players.at(nameRec).CurrentFrame -= 4;
                                 players.at(nameRec).sprite.setTextureRect(
@@ -242,8 +240,6 @@ int main() {
     selector.add(listener);
     sf::Thread thread1(&G);
     thread1.launch();
-    sf::IpAddress ip = sf::IpAddress::getLocalAddress();
-    std::cout << "Ip: " << ip.toString() << "\n";
     std::cout << "Enter count of players:\n";
     std::cin >> count;
     sf::Thread thread2(&F);
@@ -271,7 +267,7 @@ int main() {
                 u.second.bul_ability += 0.001 * time1;
                 // std::cout << u.second.x << " " << u.second.y << " " << u.second.speed << " " << u.second.dir << "\n";
                 packet3.clear();
-                packet3 << u.first << 5 << u.second.x << u.second.y << u.second.leftOnWater << u.second.health
+                packet3 << u.first << 5 << u.second.x << u.second.y << u.second.health
                         << u.second.playerscore << u.second.ability << u.second.bul_ability << u.second.bullets
                         << u.second.life;
                 int rows = model.getMap().getRows();
@@ -333,11 +329,28 @@ int main() {
                 packet3 << model.getMap().score_of_coins[i][j];
             }
         }
-
+        packetWithEnemies.clear();
+        packetWithEnemies << "name" << 9 << static_cast<int>(model.getEnemies().size());
+        for(auto& enemy : model.getEnemies()){
+            if(!enemy->isAlive()){
+                continue;
+            }
+            enemy->currFrame += (time1 / 2'000);
+            if(enemy->currFrame >= 4){
+                enemy->currFrame = 0;
+            }
+            //std::cout << "SEND " << enemy->getPos().first << ' ' << enemy->getPos().second << ' ' << enemy->currFrame << "\n";
+            packetWithEnemies << enemy->id << enemy->getPos().first << enemy->getPos().second << enemy->hp << enemy->currFrame << static_cast<int>(enemy->getDirection()) << static_cast<int>(enemy->getAction());
+            if(enemy->getAction() == Action::ATTACK){
+                packetWithEnemies << model.getMap().time_hurt[enemy->getMapPos().first][enemy->getMapPos().second];
+                std::cout << "hurt " << model.getMap().time_hurt[enemy->getMapPos().first][enemy->getMapPos().second] << "\n";
+            }
+        }
         for (auto t = clients.begin(); t != clients.end(); t++) {
             sf::TcpSocket *cl = **t;
             if (selector.isReady(*cl)) {
                 (*cl).send(packet3);
+                (*cl).send(packetWithEnemies);
             }
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(10));

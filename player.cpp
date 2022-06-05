@@ -19,10 +19,11 @@ Player::Player(sf::String F, float X, float Y, float W, float H){
     sprite.setTexture(texture);
     x = X; y = Y;
     sprite.setTextureRect(sf::IntRect(0, 0, w, h));
-    //sprite.setPosition(100,100);
+    sprite.setPosition(x, y);
 }
 void Player::update(float time, Model& model, const std::string &name)
 {
+    time /= 10000;
     switch (dir)
     {
         case 0: dx = speed; dy = 0; break;
@@ -56,7 +57,7 @@ void Player::interactionWithMap(float time, Model &model, const std::string &nam
                 continue;
             }
             if (model.getMap().field[i][j] == BlockType::WATER) {
-                leftOnWater -= time / 100'000;
+                health -= (100 * time) / 3;
             }
             if (model.getMap().field[i][j] == BlockType::MOLE) {
                 health -= 0.001;

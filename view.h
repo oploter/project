@@ -5,10 +5,12 @@
 #include <SFML/Graphics.hpp>
 #include <string>
 #include <vector>
+#include <map>
 struct View {
 private:
   sf::RenderWindow &window;
   sf::Sprite mapSprite;
+  sf::Sprite enemySprite;
   Model *model;
   int screen_width, screen_height;
 
@@ -22,6 +24,7 @@ public:
   View(sf::RenderWindow &window_, Model &model_);
   void drawMap();
   void drawMenu();
+  void drawEnemies(std::map<int, ClientEnemy>& enemies, float time);
   void changeModel(Model &new_model);
 };
 #endif

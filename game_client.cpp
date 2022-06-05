@@ -8,6 +8,7 @@
 #include <iostream>
 #include <sstream>
 #include <deque>
+#include <map>
 #include <utility>
 #include <mutex>
 
@@ -18,7 +19,6 @@ sf::Packet  packet1;
 sf::Packet  packet2;
 sf::IpAddress ip;
 std::mutex m;
-
 struct Bullet {
     float x, y;
     float w, h, dx, dy, speed;
@@ -44,9 +44,10 @@ struct Bullet {
 };
 
 std::deque <std::unique_ptr<Bullet>> bullets;
+std::map<int, ClientEnemy> enemies;
 std::map <std::string, Player> players;
 std::map <std::string, bool> names;
-Model model("map.txt");
+ClientModel model("map.txt");
 
 void F() {
     while (true) {
@@ -88,7 +89,7 @@ void F() {
                             std::make_unique<Bullet>("bullet.png", players.at(nameRec).x, players.at(nameRec).y, 16.0,
                                                      16.0, players.at(nameRec).dir));
                 } else if (command == 5) {
-                    packet1 >> players.at(nameRec).x >> players.at(nameRec).y >> players.at(nameRec).leftOnWater
+                    packet1 >> players.at(nameRec).x >> players.at(nameRec).y
                             >> players.at(nameRec).health >> players.at(nameRec).playerscore
                             >> players.at(nameRec).ability >> players.at(nameRec).bul_ability
                             >> players.at(nameRec).bullets >> players.at(nameRec).life;
@@ -137,6 +138,24 @@ void F() {
                     (*bullets[ind]).sprite.setPosition((*bullets[ind]).x, (*bullets[ind]).y);
                 } else if (command == 8) {
                     bullets.pop_front();
+                } else if (command == 9){
+                    int enemiesCount;
+                    packet1 >> enemiesCount;
+                    std::cout << "GOT " << enemiesCount << "\n";
+                    for(int j = 0; j < enemiesCount; j++){
+                        int enemyId;
+                        packet1 >> enemyId;
+                        ClientEnemy& enemy = enemies[enemyId];
+                        enemy.id = enemyId;
+                        packet1 >> enemy.pos.first >> enemy.pos.second >> enemy.hp >> enemy.currFrame;
+                        int enemyDir, enemyAction;
+                        packet1 >> enemyDir >> enemyAction;
+                        enemy.dir = static_cast<Direction>(enemyDir);
+                        enemy.action = static_cast<Action>(enemyAction);
+                        if(enemy.action == Action::ATTACK){
+                            packet1 >> model.getMap().time_hurt[(enemy.pos.first + IMG_H / 2) / BlockSize][(enemy.pos.second + IMG_W / 2) / BlockSize];
+                        }
+                    }
                 }
             }
         }
@@ -144,13 +163,9 @@ void F() {
 }
 
 int main() {
-    //ip = sf::IpAddress::getLocalAddress();
+    ip = sf::IpAddress::getLocalAddress();
     //std::cout << ip.toString() << "\n";
     //ip = sf::IpAddress("192.168.43.253");
-    std::cout << "Enter ip: ";
-    std::string Ip;
-    std::cin >> Ip;
-    ip = sf::IpAddress(Ip);
     if(socket.connect(ip, 2000) != sf::Socket::Done) {
         std::cout << "Error!\n";
     }
@@ -225,7 +240,6 @@ int main() {
     while (window.isOpen()) {
         float time = clock.getElapsedTime().asMicroseconds();
         clock.restart();
-        time = time / 10;
         sf::Event ev;
 
         while (window.pollEvent(ev)) {
@@ -291,8 +305,6 @@ int main() {
             }
             case GameState::GAME:
             {
-                players.at(name).ability += 0.001 * time;
-                players.at(name).bul_ability += 0.001 * time;
                 view.drawMap();
                 std::wostringstream PlayerScore;
                 PlayerScore << players.at(name).playerscore;
@@ -347,11 +359,7 @@ int main() {
                     window.draw(text_m);
                     players.at(name).ind = 0;
                 }
-                if(model.getMap().at((players.at(name).y + players.at(name).h / 2) / BlockSize, (players.at(name).x + players.at(name).w / 2) / BlockSize) == BlockType::WATER){
-                    text_m.setString(std::to_string(players.at(name).leftOnWater));
-                    text_m.setPosition(450, 0);
-                    window.draw(text_m);
-                }
+                view.drawEnemies(enemies, time);
                 break;
             }
             case GameState::DIED:
@@ -367,12 +375,16 @@ int main() {
         if (names[name] == false) {
             model.state = GameState::DIED;
         }
-        else if (players.at(name).leftOnWater <= 0) {
+        else if (players.at(name).health <= 0) {
             packet2.clear();
             packet2 << name << 3;
             socket.send(packet2);
         }
-        //std::cout << names["b"] << "\n";
         window.display();
     }
 }
+
+/*
+g++ -std=c++17 game_client.cpp model.cpp map.cpp player.cpp view.cpp -o game_client -lsfml-window -lsfml-system -lsfml-graphics -lsfml-network
+g++ -std=c++17 game_server.cpp model.cpp map.cpp player.cpp view.cpp enemy.cpp -o game_server -lsfml-window -lsfml-system -lsfml-graphics -lsfml-network
+*/

@@ -10,7 +10,6 @@ public:
     float x, y, w, h, dx, dy, speed, health, ability, bul_ability, ind;
     bool life;
     int dir, playerscore;
-    float leftOnWater = 3;
     float CurrentFrame = 0;
     int bullets = 100;
     sf::String File;

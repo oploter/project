@@ -15,6 +15,7 @@ public:
   std::vector<std::vector<int>> last_time;
   std::vector<std::vector<int>> life_of_flowers;
   std::vector<std::vector<std::string>> map_of_players;
+  std::vector<std::vector<float>> time_hurt;
 
   Map(int rows_, int cols_);
   Map(const std::string &file_name);
