@@ -13,6 +13,8 @@ private:
   sf::Sprite enemySprite;
   Model *model;
   int screen_width, screen_height;
+  sf::Text text_p, text_m, text_h, text_s, text_ph, text_bul;
+  std::string currPlrName = "";
 
 public:
   static sf::Font *get_or_create_font(const std::string &font_name,
@@ -22,9 +24,10 @@ public:
                         const std::string &path_to_texture = "",
                         bool transparent = false);
   View(sf::RenderWindow &window_, Model &model_);
-  void drawMap();
+  void drawMap(Player& thisPlr);
   void drawMenu();
-  void drawEnemies(std::map<int, ClientEnemy>& enemies, float time);
+  void drawEnemies(std::map<int, ClientEnemy>& enemies);
   void changeModel(Model &new_model);
+  void setName(const std::string& tmpName);
 };
 #endif

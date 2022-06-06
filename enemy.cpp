@@ -12,7 +12,7 @@
 bool checkIsPlant(BlockType t);
 std::mt19937 rng_enemy(1729); 
 Enemy::Enemy(Map &map, int id_)
-    : pos({-1 * BlockSize, BlockSize + ((double)rng_enemy() / std::mt19937::max())*(map.getCols() * BlockSize - 2 * BlockSize)}), id(id_) {
+    : pos({-3 * BlockSize, BlockSize + ((double)rng_enemy() / std::mt19937::max())*(map.getCols() * BlockSize - 2 * BlockSize)}), id(id_) {
     updateMapPos();
 }
 void Enemy::updateMapPos(){
@@ -101,11 +101,15 @@ Zombie::Zombie(std::pair<float, float> pos_, std::pair<float, float> dest_, Map&
     setPosition(pos_, dest_, map);
 }
 void Zombie::update(float time, Model &model) {
+    if(hp <= 0){
+        alive = false;
+        return;
+    }
     time /= 10'000;
     Map &map = model.getMap();
     if (action == Action::ENTRY) {
-        assert(0 <= mapPos.second && mapPos.second < map.getCols());
-        assert(pos.first < 0 || (0 <= mapPos.first && mapPos.first < map.getRows()));
+        //assert(0 <= mapPos.second && mapPos.second < map.getCols());
+        //assert(pos.first < 0 || (0 <= mapPos.first && mapPos.first < map.getRows()));
         if (pos.first < BlockSize ||
             map.at(mapPos.first, mapPos.second) == BlockType::CONCRETE ||
             map.at(mapPos.first, mapPos.second) == BlockType::WATER) {
@@ -163,7 +167,7 @@ void Zombie::update(float time, Model &model) {
             bool ok_y = (std::max(std::abs(nextPos.first - pos.first),
                                   std::abs(nextPos.first - pos.first - h)) <=
                          BlockSize / 2);
-            assert(ok_x || ok_y);
+            //assert(ok_x || ok_y);
             if (ok_x && ok_y) {
                 dir = Direction::STOP;
                 path.pop_back();

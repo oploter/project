@@ -8,6 +8,8 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <sstream>
+#include <cassert>
 sf::Font *View::get_or_create_font(const std::string &font_name,
                                    const std::string &path_to_font) {
     static std::unordered_map<std::string, std::unique_ptr<sf::Font>> fonts;
@@ -39,19 +41,47 @@ sf::Texture *View::get_or_create_texture(const std::string &texture_name,
 View::View(sf::RenderWindow &window_, Model &model_)
         : window(window_), model(&model_), screen_width(window.getSize().x),
           screen_height(window.getSize().y) {
-    get_or_create_texture("map", "img/blocks.png");
-    get_or_create_font("font", "img/arial.ttf");
-    enemySprite.setTexture(*get_or_create_texture("enemy", "img/enemy.png", true));
+    get_or_create_texture("map", "../img/blocks.png");
+    get_or_create_font("font", "../img/arial.ttf");
+    enemySprite.setTexture(*get_or_create_texture("enemy", "../img/enemy.png", true));
+
+    text_s.setFont(*get_or_create_font("font"));
+    text_s.setCharacterSize(20);
+    text_s.setFillColor(sf::Color::Yellow);
+    text_s.setStyle(sf::Text::Bold);
+
+    text_h.setFont(*get_or_create_font("font"));
+    text_h.setCharacterSize(20);
+    text_h.setFillColor(sf::Color::Green);
+    text_h.setStyle(sf::Text::Bold);
+
+    text_m.setFont(*get_or_create_font("font"));
+    text_m.setCharacterSize(20);
+    text_m.setFillColor(sf::Color::Red);
+    text_m.setStyle(sf::Text::Bold);
+
+    text_p.setFont(*get_or_create_font("font"));
+    text_p.setCharacterSize(20);
+    text_p.setFillColor(sf::Color::Black);
+    text_p.setStyle(sf::Text::Bold);
+
+    text_ph.setFont(*get_or_create_font("font"));
+    text_ph.setCharacterSize(20);
+    text_ph.setFillColor(sf::Color::Red);
+    text_ph.setStyle(sf::Text::Bold);
+
+    text_bul.setFont(*get_or_create_font("font"));
+    text_bul.setCharacterSize(20);
+    text_bul.setFillColor(sf::Color::Black);
+    text_bul.setStyle(sf::Text::Bold);
 }
-void View::drawMap() {
-    [[maybe_unused]] const Map &map = model->getMap();
-    [[maybe_unused]] auto &mapTexture = *get_or_create_texture("map");
-    mapSprite.setTexture(mapTexture);
-    for (int col = 0; col < map.getCols(); col++) {
-        for (int row = 0; row < map.getRows(); row++) {
+void View::drawMap(Player& thisPlr) {
+    mapSprite.setTexture(*get_or_create_texture("map"));
+    for (int col = 0; col < model->getMap().getCols(); col++) {
+        for (int row = 0; row < model->getMap().getRows(); row++) {
             mapSprite.setPosition(col * BlockSize, row * BlockSize);
-            BlockType t = map.at(row, col);
-            if(map.time_hurt[row][col] > 0 && (t == BlockType::SMALL_FLOWER || t == BlockType::AVERAGE_FLOWER || t == BlockType::BIG_FLOWER)){
+            BlockType t = model->getMap().at(row, col);
+            if(model->getMap().time_hurt[row][col] > 0 && (t == BlockType::SMALL_FLOWER || t == BlockType::AVERAGE_FLOWER || t == BlockType::BIG_FLOWER)){
                 mapSprite.setColor(sf::Color::Red);
             }
             switch (t) {
@@ -59,7 +89,7 @@ void View::drawMap() {
                     mapSprite.setTextureRect(sf::IntRect(100, 0, BlockSize, BlockSize));
                     break;
                 case BlockType::GREEN:
-                    if (map.score_of_coins[row][col] == 0) mapSprite.setTextureRect(sf::IntRect(50, 0, BlockSize, BlockSize));
+                    if (model->getMap().score_of_coins[row][col] == 0) mapSprite.setTextureRect(sf::IntRect(50, 0, BlockSize, BlockSize));
                     else {
                         mapSprite.setTextureRect(sf::IntRect(150, 0, BlockSize, BlockSize));
                     }
@@ -71,7 +101,7 @@ void View::drawMap() {
                     mapSprite.setTextureRect(sf::IntRect(50, 0, BlockSize, BlockSize));
                     break;
                 case BlockType::SMALL_FLOWER:
-                    if (map.score_of_coins[row][col] == 0) {
+                    if (model->getMap().score_of_coins[row][col] == 0) {
                         mapSprite.setTextureRect(sf::IntRect(200, 0, BlockSize, BlockSize));
                     }
                     else {
@@ -79,7 +109,7 @@ void View::drawMap() {
                     }
                     break;
                 case BlockType::AVERAGE_FLOWER:
-                    if (map.score_of_coins[row][col] == 0) {
+                    if (model->getMap().score_of_coins[row][col] == 0) {
                         mapSprite.setTextureRect(sf::IntRect(250, 0, BlockSize, BlockSize));
                     }
                     else {
@@ -87,7 +117,7 @@ void View::drawMap() {
                     }
                     break;
                 case BlockType::BIG_FLOWER:
-                    if (map.score_of_coins[row][col] == 0) {
+                    if (model->getMap().score_of_coins[row][col] == 0) {
                         mapSprite.setTextureRect(sf::IntRect(300, 0, BlockSize, BlockSize));
                     }
                     else {
@@ -99,6 +129,59 @@ void View::drawMap() {
             mapSprite.setColor(sf::Color::White);
         }
     }
+    std::wostringstream PlayerScore;
+    PlayerScore << thisPlr.playerscore;
+    text_s.setString(L"Собрано монет:" + PlayerScore.str());
+    text_s.setPosition(0, 0);
+    window.draw(text_s);
+
+    std::wostringstream PlayerHealth;
+    PlayerHealth << thisPlr.health;
+    text_h.setString(L"Здоровье:" + PlayerHealth.str());
+    text_h.setPosition(0, 700);
+    window.draw(text_h);
+
+    std::wostringstream PlayerBullets;
+    PlayerBullets << thisPlr.bullets;
+    text_bul.setString(L"Количество патронов:" + PlayerBullets.str());
+    text_bul.setPosition(450, 700);
+    window.draw(text_bul);
+
+    if(model->type == 1){
+        for(std::unique_ptr<ServerBullet>& bullet : static_cast<ServerModel*>(model)->getBullets()){
+            if(!bullet->life){
+                continue;
+            }
+            window.draw(bullet->sprite);
+        }
+    }else{
+        for(std::unique_ptr<ClientBullet>& bullet : static_cast<ClientModel*>(model)->getBullets()){
+            if(!bullet->life){
+                continue;
+            }
+            window.draw(bullet->sprite);
+        }
+    }
+    for (auto& u : model->getPlayers()) {
+        if (model->getNames()[u.first] == true) {
+            sf::Text text_p("", *(View::get_or_create_font("font")), 20);
+            sf::Text text_ph("", *(View::get_or_create_font("font")), 20);
+            //std::wstring widestr = std::wstring(u.first.begin(), u.first.end());
+            text_p.setString(u.first);
+            text_p.setPosition(model->getPlayers().at(u.first).x, model->getPlayers().at(u.first).y - 20);
+            text_ph.setString(u.first);
+            text_ph.setPosition(model->getPlayers().at(u.first).x, model->getPlayers().at(u.first).y - 20);
+            if (u.first == currPlrName) {
+                window.draw(text_ph);
+            } else {
+                window.draw(text_p);
+            }
+            window.draw(model->getPlayers().at(u.first).sprite);
+            //std::cout << players.at(u.first).x << " " << players.at(u.first).y << "\n";
+        }
+    }
+    //assert(static_cast<ClientModel*>(model)->getEnemies().size() > 0);
+    drawEnemies(static_cast<ClientModel*>(model)->getEnemies());
 }
 void View::drawMenu() {
     window.clear(sf::Color(100, 100, 100));
@@ -107,8 +190,14 @@ void View::drawMenu() {
         sprite.setPosition(button.coordinates().first, button.coordinates().second);
         window.draw(sprite);
     }
+    if(model->state == GameState::DIED){
+        text_m.setString(L"Вы умерли");
+        text_m.setPosition(250, 300);
+        text_m.setFillColor(sf::Color::Red);
+        window.draw(text_m);
+    }
 }
-void View::drawEnemies(std::map<int, ClientEnemy>& enemies, float time){
+void View::drawEnemies(std::map<int, ClientEnemy>& enemies){
     for(auto it = enemies.begin(); it != enemies.end(); it++){
         ClientEnemy& enemy = it->second;
         switch (enemy.dir)
@@ -133,5 +222,15 @@ void View::drawEnemies(std::map<int, ClientEnemy>& enemies, float time){
         }   
         enemySprite.setPosition(enemy.pos.second, enemy.pos.first);
         window.draw(enemySprite);
+        sf::RectangleShape hpLine(sf::Vector2f((static_cast<float>(enemy.hp) / 100) * IMG_W, 5));
+        hpLine.setFillColor(sf::Color::Green);
+        hpLine.setPosition(enemy.pos.second, enemy.pos.first - 5);
+        window.draw(hpLine);
     }
+}
+void View::changeModel(Model &new_model){
+    model = &new_model;
+}
+void View::setName(const std::string& tmpName){
+    currPlrName = tmpName;
 }

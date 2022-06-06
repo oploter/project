@@ -3,6 +3,7 @@
 #include <string>
 #include "model.h"
 #include "vars.h"
+#include "game_server.h"
 #include "view.h"
 #include <SFML/Graphics.hpp>
 #include <iostream>
@@ -10,8 +11,11 @@
 #include <deque>
 #include <map>
 #include <utility>
+#include <thread>
 #include <mutex>
+#include <cassert>
 
+namespace{
 sf::TcpSocket socket;
 std::string name;
 std::string message = "";
@@ -19,35 +23,10 @@ sf::Packet  packet1;
 sf::Packet  packet2;
 sf::IpAddress ip;
 std::mutex m;
-struct Bullet {
-    float x, y;
-    float w, h, dx, dy, speed;
-    bool life;
-    int dir;
-    sf::String File;
-    sf::Image image;
-    sf::Texture texture;
-    sf::Sprite sprite;
 
-    Bullet(sf::String F, float X, float Y, float W, float H, int dir_){
-        dx=0;dy=0;speed=0.15;dir=dir_;
-        life = true;
-        File = F;
-        w = W; h = H;
-        image.loadFromFile("img/" + File);
-        texture.loadFromImage(image);
-        sprite.setTexture(texture);
-        x = X; y = Y;//координата появления спрайта
-        sprite.setTextureRect(sf::IntRect(0, 0, w, h));
-        sprite.setPosition(x, y);
-    }
-};
-
-std::deque <std::unique_ptr<Bullet>> bullets;
-std::map<int, ClientEnemy> enemies;
-std::map <std::string, Player> players;
-std::map <std::string, bool> names;
-ClientModel model("map.txt");
+sf::RenderWindow window(sf::VideoMode(750, 750), "Game");
+std::unique_ptr<Model> model(new ClientModel("../map.txt"));
+View view(window, *model);
 
 void F() {
     while (true) {
@@ -56,11 +35,12 @@ void F() {
             std::string s;
             int command;
             packet1 >> nameRec >> command;
-            if (players.find(nameRec) == players.end() && command < 6) {
-                players.emplace(nameRec, model.getPlayer());
-                names.emplace(nameRec, true);
+            if (model->getPlayers().find(nameRec) == model->getPlayers().end() && command < 6) {
+                model->getPlayers().emplace(nameRec, model->getPlayer());
+                model->getNames().emplace(nameRec, true);
             }
-            if (names[nameRec] == true || nameRec == "name") {
+            if (model->getNames()[nameRec] == true || nameRec == "name") {
+                auto& players = model->getPlayers();
                 if (command == 2) {
                     packet1 >> players.at(nameRec).dir >> players.at(nameRec).speed >> players.at(nameRec).CurrentFrame
                             >> s;
@@ -81,71 +61,74 @@ void F() {
                     int row, col;
                     packet1 >> row >> col >> players.at(nameRec).ind;
                     if (players.at(nameRec).ind == 0) {
-                        model.getMap().life_of_flowers[row][col] = 20;
-                        model.getMap().field[row][col] = static_cast<BlockType>(static_cast<int>('4') - 48);
+                        model->getMap().life_of_flowers[row][col] = 20;
+                        model->getMap().field[row][col] = static_cast<BlockType>(static_cast<int>('4') - 48);
                     }
                 } else if (command == 4) {
-                    bullets.emplace_back(
-                            std::make_unique<Bullet>("bullet.png", players.at(nameRec).x, players.at(nameRec).y, 16.0,
+                    static_cast<ClientModel&>(*model).getBullets().emplace_back(
+                            std::make_unique<ClientBullet>("bullet.png", players.at(nameRec).x, players.at(nameRec).y, 16.0,
                                                      16.0, players.at(nameRec).dir));
                 } else if (command == 5) {
                     packet1 >> players.at(nameRec).x >> players.at(nameRec).y
                             >> players.at(nameRec).health >> players.at(nameRec).playerscore
                             >> players.at(nameRec).ability >> players.at(nameRec).bul_ability
                             >> players.at(nameRec).bullets >> players.at(nameRec).life;
-                    names[nameRec] = players.at(nameRec).life;
+                    model->getNames()[nameRec] = players.at(nameRec).life;
                     int x = players.at(nameRec).x;
                     int y = players.at(nameRec).y;
                     players.at(nameRec).sprite.setPosition(x, y);
-                    int rows = model.getMap().getRows();
-                    int cols = model.getMap().getCols();
+                    int rows = model->getMap().getRows();
+                    int cols = model->getMap().getCols();
                     for (int i = 0; i < rows; i++) {
                         for (int j = 0; j < cols; j++) {
-                            packet1 >> model.getMap().score_of_coins[i][j];
+                            packet1 >> model->getMap().score_of_coins[i][j];
                         }
                     }
                 } else if (command == 6) {
-                    for (int i = 0; i < model.getMap().getRows(); i++) {
-                        for (int j = 0; j < model.getMap().getCols(); j++) {
+                    for (int i = 0; i < model->getMap().getRows(); i++) {
+                        for (int j = 0; j < model->getMap().getCols(); j++) {
                             int val;
                             packet1 >> val;
                             if (val == 0) {
-                                model.getMap().field[i][j] = BlockType::CONCRETE;
+                                model->getMap().field[i][j] = BlockType::CONCRETE;
                             } else if (val == 1) {
-                                model.getMap().field[i][j] = BlockType::GREEN;
+                                model->getMap().field[i][j] = BlockType::GREEN;
                             } else if (val == 2) {
-                                model.getMap().field[i][j] = BlockType::WATER;
+                                model->getMap().field[i][j] = BlockType::WATER;
                             } else if (val == 3) {
-                                model.getMap().field[i][j] = BlockType::MOLE;
+                                model->getMap().field[i][j] = BlockType::MOLE;
                             } else if (val == 4) {
-                                model.getMap().field[i][j] = BlockType::SMALL_FLOWER;
+                                model->getMap().field[i][j] = BlockType::SMALL_FLOWER;
                             } else if (val == 5) {
-                                model.getMap().field[i][j] = BlockType::AVERAGE_FLOWER;
+                                model->getMap().field[i][j] = BlockType::AVERAGE_FLOWER;
                             } else if (val == 6) {
-                                model.getMap().field[i][j] = BlockType::BIG_FLOWER;
+                                model->getMap().field[i][j] = BlockType::BIG_FLOWER;
                             }
                         }
                     }
-                    for (int i = 0; i < model.getMap().getRows(); i++) {
-                        for (int j = 0; j < model.getMap().getCols(); j++) {
-                            packet1 >> model.getMap().score_of_coins[i][j];
+                    for (int i = 0; i < model->getMap().getRows(); i++) {
+                        for (int j = 0; j < model->getMap().getCols(); j++) {
+                            packet1 >> model->getMap().score_of_coins[i][j];
                         }
                     }
                 } else if (command == 7) {
                     int ind;
                     packet1 >> ind;
-                    packet1 >> (*bullets[ind]).x >> (*bullets[ind]).y >> (*bullets[ind]).life;
-                    (*bullets[ind]).sprite.setPosition((*bullets[ind]).x, (*bullets[ind]).y);
+                    auto& bullet = *(static_cast<ClientModel&>(*model).getBullets())[ind];
+                    packet1 >> bullet.x >> bullet.y >> bullet.life;
+                    bullet.sprite.setPosition(bullet.x, bullet.y);
                 } else if (command == 8) {
-                    bullets.pop_front();
+                    int bulletInd;
+                    packet1 >> bulletInd;
+                    static_cast<ClientModel&>(*model).getBullets().erase(static_cast<ClientModel&>(*model).getBullets().begin() + bulletInd);
                 } else if (command == 9){
+                    static_cast<ClientModel&>(*model).getEnemies().clear();
                     int enemiesCount;
                     packet1 >> enemiesCount;
-                    std::cout << "GOT " << enemiesCount << "\n";
                     for(int j = 0; j < enemiesCount; j++){
                         int enemyId;
                         packet1 >> enemyId;
-                        ClientEnemy& enemy = enemies[enemyId];
+                        ClientEnemy& enemy = (static_cast<ClientModel&>(*model).getEnemies())[enemyId];
                         enemy.id = enemyId;
                         packet1 >> enemy.pos.first >> enemy.pos.second >> enemy.hp >> enemy.currFrame;
                         int enemyDir, enemyAction;
@@ -153,7 +136,7 @@ void F() {
                         enemy.dir = static_cast<Direction>(enemyDir);
                         enemy.action = static_cast<Action>(enemyAction);
                         if(enemy.action == Action::ATTACK){
-                            packet1 >> model.getMap().time_hurt[(enemy.pos.first + IMG_H / 2) / BlockSize][(enemy.pos.second + IMG_W / 2) / BlockSize];
+                            packet1 >> model->getMap().time_hurt[(enemy.pos.first + IMG_H / 2) / BlockSize][(enemy.pos.second + IMG_W / 2) / BlockSize];
                         }
                     }
                 }
@@ -161,106 +144,65 @@ void F() {
         }
     }
 }
-
-int main() {
+}
+void multiGame(){
+    //std::cout << "Enter ip: ";
+    //std::string Ip;
+    //std::cin >> Ip;
+    //ip = sf::IpAddress(Ip);
+    std::cout << "multiGame called\n";
     ip = sf::IpAddress::getLocalAddress();
-    //std::cout << ip.toString() << "\n";
-    //ip = sf::IpAddress("192.168.43.253");
+    std::cout << "ip " << ip.toString() << "\n";
     if(socket.connect(ip, 2000) != sf::Socket::Done) {
-        std::cout << "Error!\n";
-    }
-    while (true) {
-        std::cout << "Enter your name:\n";
-        std::cin >> name;
-        if (players.find(name) == players.end()) {
-            break;
+        std::thread t(startServer, 2);
+        t.detach();
+        if(socket.connect(ip, 2000) != sf::Socket::Done){
+            std::cout << "Error\n";
+            return;
         }
-        else {
-            std::cout << "This name is already taken\n";
-        }
+        std::cout << "NEW SERVR\n";
+    }else{
+        std::cout << "ALREADY EXISTS\n";
     }
+    //while (true) {
+    //    std::cout << "Enter your name:\n";
+    //    std::cin >> name;
+    //    if (model->getPlayers().find(name) == model->getPlayers().end()) {
+    //        break;
+    //    }
+    //    else {
+    //        std::cout << "This name is already taken\n";
+    //    }
+    //}
+    std::cout << "Enter your name:\n";
+    std::cin >> name;
     socket.setBlocking(false);
     sf::Thread thread(&F);
     thread.launch();
 
-    sf::RenderWindow window(sf::VideoMode(750, 750), "Window");
-    View view(window, model);
 
-    players.emplace(name, model.getPlayer());
-    names.emplace(name, true);
-    names.emplace("name", true);
+    model->getPlayers().emplace(name, model->getPlayer());
+    model->getNames().emplace(name, true);
+    model->getNames().emplace("name", true);
+    std::cout << "CLIENTMODEL " << model->getPlayers().size() << ' ' << model->getNames().size() << ' ' << model->getMap().getCols() << ' ' << model->getMap().getRows() << "\n";
+    std::cout << "MODEL TYPE " << (model->type == 1 ? "SERVER" : "CLIENT") << "\n";
+    assert(model->getMap().getCols() > 0 && model->getMap().getRows() > 0);
     packet2.clear();
     packet2 << name << 1;
     socket.send(packet2);
+    std::cout << "FFFF " << static_cast<void*>(model.get()) << "\n";
 
-    sf::Clock clock;
-
-    sf::Font score;
-    score.loadFromFile("arial.ttf");
-    sf::Text text_s("", score, 20);
-    //text.setOutlineColor(sf::Color::Black);
-    text_s.setFillColor(sf::Color::Yellow);
-    text_s.setStyle(sf::Text::Bold);
-
-    sf::Font Health;
-    Health.loadFromFile("arial.ttf");
-    sf::Text text_h("", Health, 20);
-    //text.setOutlineColor(sf::Color::Black);
-    text_h.setFillColor(sf::Color::Green);
-    text_h.setStyle(sf::Text::Bold);
-
-    sf::Font Message;
-    Message.loadFromFile("arial.ttf");
-    sf::Text text_m("", Message, 20);
-    //text.setOutlineColor(sf::Color::Black);
-    text_m.setFillColor(sf::Color::Red);
-    text_m.setStyle(sf::Text::Bold);
-
-    sf::Font player_en;
-    player_en.loadFromFile("arial.ttf");
-    sf::Text text_p("", player_en, 20);
-    //text.setOutlineColor(sf::Color::Black);
-    text_p.setFillColor(sf::Color::Black);
-    text_p.setStyle(sf::Text::Bold);
-
-    sf::Font player_h;
-    player_h.loadFromFile("arial.ttf");
-    sf::Text text_ph("", player_h, 20);
-    //text.setOutlineColor(sf::Color::Black);
-    text_ph.setFillColor(sf::Color::Red);
-    text_ph.setStyle(sf::Text::Bold);
-
-    sf::Font bul;
-    bul.loadFromFile("arial.ttf");
-    sf::Text text_bul("", bul, 20);
-    //text.setOutlineColor(sf::Color::Black);
-    text_bul.setFillColor(sf::Color::Black);
-    text_bul.setStyle(sf::Text::Bold);
-
-    while (window.isOpen()) {
-        float time = clock.getElapsedTime().asMicroseconds();
-        clock.restart();
+    while (window.isOpen() && model->state == GameState::GAME) {
         sf::Event ev;
 
         while (window.pollEvent(ev)) {
             if (ev.type == sf::Event::Closed) {
                 window.close();
-            }
-            if(model.state == GameState::MENU || model.state == GameState::DIED){
-                if(ev.type == sf::Event::MouseButtonPressed){
-                    auto mousePos = sf::Mouse::getPosition(window);
-                    if(model.getButtons()[0].isClicked(mousePos.x, mousePos.y)){ // нажали "Single game"
-                        model.state = GameState::GAME;
-                    }else if(model.getButtons()[1].isClicked(mousePos.x, mousePos.y)){ // нажали "Exit"
-                        window.close();
-                    }
-                }
-                break;
-            }
-            else {
+            }else{
                 if (ev.type == sf::Event::KeyPressed) {
+                    auto& players = model->getPlayers();
                     auto code = ev.key.code;
-                    if (names[name] == true) {
+                    if (model->getNames()[name] == true) {
                         if ((code == sf::Keyboard::Left) && players.at(name).x >= 0) {
                             packet2.clear();
                             packet2 << name << 2 << "L";
@@ -278,8 +220,6 @@ int main() {
                             packet2 << name << 2 << "D";
                             socket.send(packet2);
                         } else if (code == sf::Keyboard::P) {
-                            int row = players.at(name).y / 50;
-                            int col = players.at(name).x / 50;
                             packet2.clear();
                             packet2 << name << 2 << "P";
                             socket.send(packet2);
@@ -296,86 +236,47 @@ int main() {
         }
 
         window.clear();
-        switch (model.state)
-        {
-            case GameState::MENU:
-            {
-                view.drawMenu();
-                break;
-            }
-            case GameState::GAME:
-            {
-                view.drawMap();
-                std::wostringstream PlayerScore;
-                PlayerScore << players.at(name).playerscore;
-                text_s.setString(L"Собрано монет:" + PlayerScore.str());
-                text_s.setPosition(0, 0);
-                window.draw(text_s);
-
-                std::wostringstream PlayerHealth;
-                PlayerHealth << players.at(name).health;
-                text_h.setString(L"Здоровье:" + PlayerHealth.str());
-                text_h.setPosition(0, 700);
-                window.draw(text_h);
-
-                std::wostringstream PlayerBullets;
-                PlayerBullets << players.at(name).bullets;
-                text_bul.setString(L"Количество патронов:" + PlayerBullets.str());
-                text_bul.setPosition(450, 700);
-                window.draw(text_bul);
-                //window.draw(players.at(name).sprite);
-                //std::cout << players.size() << "\n";
-                /*for (auto u : players) {
-                    std::cout << u.first << "\n";
-                }*/
-                for (auto u : players) {
-                    if (names[u.first] == true) {
-                        //std::wstring widestr = std::wstring(u.first.begin(), u.first.end());
-                        text_p.setString(u.first);
-                        text_p.setPosition(players.at(u.first).x, players.at(u.first).y - 20);
-                        text_ph.setString(u.first);
-                        text_ph.setPosition(players.at(u.first).x, players.at(u.first).y - 20);
-                        if (u.first == name) {
-                            window.draw(text_ph);
-                        } else {
-                            window.draw(text_p);
-                        }
-                        window.draw(players.at(u.first).sprite);
-                        //std::cout << players.at(u.first).x << " " << players.at(u.first).y << "\n";
-                    }
+        view.drawMap(model->getPlayers().at(name));
+        //window.draw(players.at(name).sprite);
+        //std::cout << players.size() << "\n";
+        /*for (auto u : players) {
+            std::cout << u.first << "\n";
+        }*/
+        for (auto u : model->getPlayers()) {
+            if (model->getNames()[u.first] == true) {
+                sf::Text text_p("", *(View::get_or_create_font("font")), 20);
+                sf::Text text_ph("", *(View::get_or_create_font("font")), 20);
+                //std::wstring widestr = std::wstring(u.first.begin(), u.first.end());
+                text_p.setString(u.first);
+                text_p.setPosition(model->getPlayers().at(u.first).x, model->getPlayers().at(u.first).y - 20);
+                text_ph.setString(u.first);
+                text_ph.setPosition(model->getPlayers().at(u.first).x, model->getPlayers().at(u.first).y - 20);
+                if (u.first == name) {
+                    window.draw(text_ph);
+                } else {
+                    window.draw(text_p);
                 }
-                for (size_t i = 0; i < bullets.size(); i++) {
-                    window.draw((*bullets[i]).sprite);
-                }
-
-                //std::cout << players.at(name).bul_ability << "\n";
-
-
-                if (players.at(name).ind == 1) {
-                    std::wostringstream M;
-                    M << (10 - players.at(name).ability);
-                    text_m.setString(L"Осталось " + M.str() + L" секунд");
-                    text_m.setPosition(450, 0);
-                    window.draw(text_m);
-                    players.at(name).ind = 0;
-                }
-                view.drawEnemies(enemies, time);
-                break;
-            }
-            case GameState::DIED:
-            {
-                view.drawMenu();
-                text_m.setString(L"Вы умерли");
-                text_m.setPosition(250, 300);
-                text_m.setFillColor(sf::Color::Red);
-                window.draw(text_m);
-                break;
+                window.draw(model->getPlayers().at(u.first).sprite);
+                //std::cout << players.at(u.first).x << " " << players.at(u.first).y << "\n";
             }
         }
-        if (names[name] == false) {
-            model.state = GameState::DIED;
+
+        //std::cout << players.at(name).bul_ability << "\n";
+
+
+        if (model->getPlayers().at(name).ind == 1) {
+            std::wostringstream M;
+            M << (10 - model->getPlayers().at(name).ability);
+            sf::Text text_m("", *(View::get_or_create_font("font")), 20);
+            text_m.setString(L"Осталось " + M.str() + L" секунд");
+            text_m.setPosition(450, 0);
+            window.draw(text_m);
+            model->getPlayers().at(name).ind = 0;
         }
-        else if (players.at(name).health <= 0) {
+        if (model->getNames()[name] == false) {
+            model->state = GameState::DIED;
+        }
+        else if (model->getPlayers().at(name).health <= 0) {
             packet2.clear();
             packet2 << name << 3;
             socket.send(packet2);
@@ -383,8 +284,46 @@ int main() {
         window.display();
     }
 }
+int main(){
+    while(window.isOpen() && (model->state == GameState::MENU || model->state == GameState::DIED)){
+        sf::Event ev;
+        while (window.pollEvent(ev)) {
+            if (ev.type == sf::Event::Closed) {
+                window.close();
+            }else if(ev.type == sf::Event::MouseButtonPressed){
+                std::cout << "MOUSE CLICKED\n";
+                [[maybe_unused]]auto mousePos = sf::Mouse::getPosition(window);
+                std::cout << "clicked\n";
+                std::cout << "Before model new\n";
+                model = std::move(std::unique_ptr<ClientModel>(new ClientModel("../map.txt")));
+                std::cout << "after model nem\n";
+                std::cout << model->getMap().getCols() << ' ' << model->getMap().getRows() << '\n';
+                model->state = GameState::GAME;
+                view.changeModel(*model);
+                multiGame();
+                //if(model->getButtons()[0].isClicked(mousePos.x, mousePos.y)){
+                //    model = std::move(std::unique_ptr<ServerModel>(new ServerModel("map.txt", 1 + rand() % 6)));
+                //    model->state = GameState::GAME;
+                //    view.changeModel(*model);
+                //    multiGame();
+                //}else if(model->getButtons()[1].isClicked(mousePos.x, mousePos.y)){
+                //    window.close();
+                //}else if(model->getButtons()[2].isClicked(mousePos.x, mousePos.y)){
+                //    model = std::move(std::unique_ptr<ClientModel>(new ClientModel("map.txt")));
+                //    model->state = GameState::GAME;
+                //    view.changeModel(*model);
+                //    multiGame();
+                //}
+
+            }
+        }
+        window.clear(sf::Color(100, 100, 100));
+        view.drawMenu();
+        window.display();
+    }
+}
 
 /*
-g++ -std=c++17 game_client.cpp model.cpp map.cpp player.cpp view.cpp -o game_client -lsfml-window -lsfml-system -lsfml-graphics -lsfml-network
+g++ -std=c++17 game_client.cpp model.cpp map.cpp player.cpp view.cpp enemy.cpp -o game_client -lsfml-window -lsfml-system -lsfml-graphics -lsfml-network
 g++ -std=c++17 game_server.cpp model.cpp map.cpp player.cpp view.cpp enemy.cpp -o game_server -lsfml-window -lsfml-system -lsfml-graphics -lsfml-network
 */

@@ -14,7 +14,7 @@ Player::Player(sf::String F, float X, float Y, float W, float H){
     dx=0;dy=0;speed=0;dir=0;
     File = F;
     w = W; h = H;
-    image.loadFromFile("img/" + File);
+    image.loadFromFile("../img/" + File);
     texture.loadFromImage(image);
     sprite.setTexture(texture);
     x = X; y = Y;

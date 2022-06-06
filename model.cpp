@@ -1,6 +1,7 @@
 #include "model.h"
 #include "map.h"
 #include "vars.h"
+#include "bullet.h"
 #include <iostream>
 #include <string>
 #include <random>
@@ -9,7 +10,9 @@ Player &Model::getPlayer() { return plr; }
 const std::vector<Button> &Model::getButtons() const { return buttons; }
 Model::Model(const std::string &mapFileName) : map(mapFileName), plr("hero.png",100,100,25.0, 41.75), state(GameState::MENU) {
     buttons.emplace_back(L"Одиночная игра", 250, 350);
-    buttons.emplace_back(L"Выход", 250, 380);
+    buttons.emplace_back(L"Выход", 250, 410);
+    buttons.emplace_back(L"Сетевая игра", 250, 380);
+    std::cout << "model has " << buttons.size() << "buttons\n";
 }
 std::mt19937 rng_model(1729); // yes, this is a fixed seed
 //std::uniform_real_distribution<> gen_real(0, std::mt19937::max()) ;
@@ -96,12 +99,16 @@ void Model::update(float time) {
             }
         }
     }
+    if(plr.health <= 0){
+        state = GameState::DIED;
+        std::cout << "DIIIED\n";
+    }
 }
 std::vector<std::unique_ptr<Enemy>>& ServerModel::getEnemies(){
     return enemies;
 }
 ServerModel::ServerModel(const std::string& mapFileName, int numOfEnemies) : Model(mapFileName){
-    std::cout << "create " << numOfEnemies << " nemis\n";
+    type = 1;
     for(int i = 0; i < numOfEnemies; i++){
         enemies.push_back(std::move(std::unique_ptr<Enemy>(new Zombie(map, i))));
     }   
@@ -113,7 +120,21 @@ void ServerModel::update(float time){
     }
 }
 ClientModel::ClientModel(const std::string& mapFileName) : Model(mapFileName){
+    type = 2;
 }
+std::map<int, ClientEnemy>& ClientModel::getEnemies(){ return enemies; }
 bool checkIsPlant(BlockType t){
     return (t == BlockType::AVERAGE_FLOWER || t == BlockType::BIG_FLOWER || t == BlockType::SMALL_FLOWER);
+}
+std::vector<std::unique_ptr<ServerBullet>>& ServerModel::getBullets(){
+    return bullets;
+}
+std::vector<std::unique_ptr<ClientBullet>>& ClientModel::getBullets(){
+    return bullets;
+}
+std::map<std::string, Player>& Model::getPlayers(){
+    return players;
+}
+std::map<std::string, bool>& Model::getNames(){
+    return names;
 }

@@ -2,10 +2,11 @@
 #include <SFML/Graphics.hpp>
 #include "model.h"
 #include "vars.h"
+#include "bullet.h"
 #include "view.h"
 #include <iostream>
 #include <sstream>
-#include <deque>
+#include <vector>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -13,73 +14,11 @@
 #include <utility>
 #include <thread>
 
-std::map <std::string, Player> players;
-std::map <std::string, bool> names;
+namespace{
+ServerModel model("../map.txt", 1 + (rand() % 5));
 
-struct Bullet {
-    float x, y;
-    float w, h, dx, dy, speed;
-    bool life;
-    int dir;
-    std::string name;
-    sf::String File;
-    sf::Image image;
-    sf::Texture texture;
-    sf::Sprite sprite;
-
-    Bullet(sf::String F, float X, float Y, float W, float H, int dir_, const std::string &name_){
-        dx=0;dy=0;speed=0.15;dir=dir_;
-        life = true;
-        name = name_;
-        File = F;
-        w = W; h = H;
-        image.loadFromFile("img/" + File);
-        texture.loadFromImage(image);
-        sprite.setTexture(texture);
-        x = X; y = Y;//координата появления спрайта
-        sprite.setTextureRect(sf::IntRect(0, 0, w, h));
-        sprite.setPosition(x, y);
-    }
-
-    void update(float time, Model &model)
-    {
-        switch (dir)
-        {
-            case 0: dx = speed; dy = 0; break;
-            case 1: dx = -speed; dy = 0; break;
-            case 2: dx = 0; dy = speed; break;
-            case 3: dx = 0; dy = -speed; break;
-        }
-
-        x += dx*time;
-        y += dy*time;
-
-        sprite.setPosition(x,y);
-        interactionWithMap(model);
-    }
-
-    void interactionWithMap(Model &model) {
-        for (int i = y / 50; i < (y + h) / 50; i++) {
-            for (int j = x / 50; j < (x + w) / 50; j++) {
-                if (i <= 0 || j <= 0 || i >= (model.getMap().getRows() - 1) || j >= (model.getMap().getCols() - 1)) {
-                    life = false;
-                }
-                else if (model.getMap().field[i][j] == BlockType::SMALL_FLOWER || model.getMap().field[i][j] == BlockType::AVERAGE_FLOWER || model.getMap().field[i][j] == BlockType::BIG_FLOWER) {
-                    life = false;
-                    model.getMap().life_of_flowers[i][j] -= 20;
-                }
-                else if (model.getMap().map_of_players[i][j] != "") {
-                    std::string player_name = model.getMap().map_of_players[i][j];
-                    if (player_name != name) {
-                        players.at(player_name).health -= 20;
-                        life = false;
-                    }
-                }
-            }
-        }
-    }
-};
-
+sf::Clock clock1;
+float time1;
 std::size_t count;
 std::string message = "";
 sf::Packet packet1, packet2, packet3, packetWithEnemies;
@@ -88,10 +27,6 @@ sf::SocketSelector selector;
 std::mutex m;
 std::vector <std::unique_ptr<sf::TcpSocket*>> clients;
 
-ServerModel model("map.txt", 1 + (rand() % 5));
-sf::Clock clock1;
-float time1;
-std::deque <std::unique_ptr<Bullet>> bullets;
 
 void F() {
     while (true) {
@@ -105,11 +40,11 @@ void F() {
                     int command;
                     //std::cout << packet.getDataSize() << "\n";
                     packet1 >> nameRec;
-                    if (players.find(nameRec) == players.end()) {
-                        players.emplace(nameRec, model.getPlayer());
-                        names.emplace(nameRec, true);
-                        if (players.size() <= count) {
-                            for (auto name : players) {
+                    if (model.getPlayers().find(nameRec) == model.getPlayers().end()) {
+                        model.getPlayers().emplace(nameRec, model.getPlayer());
+                        model.getNames().emplace(nameRec, true);
+                        if (model.getPlayers().size() <= count) {
+                            for (auto name : model.getPlayers()) {
                                 packet2.clear();
                                 packet2 << name.first << 1;
                                 for (auto t = clients.begin(); t != clients.end(); t++) {
@@ -120,17 +55,18 @@ void F() {
                                 }
                             }
                         }
-                        if (players.size() == count) {
+                        if (model.getPlayers().size() == count) {
                             count = 0;
                         }
                     }
 
                     packet1 >> command;
 
-                    if (names[nameRec] == true) {
+                    if (model.getNames()[nameRec] == true) {
                         if (command == 2) {
                             std::string button;
                             packet1 >> button;
+                            auto& players = model.getPlayers();
                             if (button == "L") {
                                 players.at(nameRec).dir = 1;
                                 players.at(nameRec).speed = BlockSize* 2;
@@ -189,7 +125,7 @@ void F() {
                                 players.at(nameRec).ind = 0;
                             } else if (button == "S") {
                                 if (players.at(nameRec).bul_ability >= 10 && players.at(nameRec).bullets > 0) {
-                                    bullets.emplace_back(std::make_unique<Bullet>("bullet.png", players.at(nameRec).x,
+                                    model.getBullets().emplace_back(std::make_unique<ServerBullet>("bullet.png", players.at(nameRec).x,
                                                                                   players.at(nameRec).y, 16.0, 16.0,
                                                                                   players.at(nameRec).dir, nameRec));
                                     packet2.clear();
@@ -207,7 +143,7 @@ void F() {
                         }
                     }
                     if (command == 3) {
-                        players.at(nameRec).life = false;
+                        model.getPlayers().at(nameRec).life = false;
                     }
 
                     m.unlock();
@@ -216,8 +152,9 @@ void F() {
         }
     }
 }
-void G() {
-    while (true) {
+void G(int numPlrs) {
+    int playerCnt = 0;
+    while (playerCnt < numPlrs) {
         if (selector.wait()) {
             if (selector.isReady(listener)) {
                 m.lock();
@@ -226,6 +163,7 @@ void G() {
                     (*client).setBlocking(false);
                     clients.emplace_back(std::make_unique<sf::TcpSocket*>(client));
                     selector.add(*client);
+                    playerCnt++;
                 }
                 else {
                     delete client;
@@ -234,14 +172,22 @@ void G() {
             }
         }
     }
+    std::cout << "added all\n";
 }
-int main() {
+}
+void startServer([[maybe_unused]]int numOfPlayers) {
+    std::cout << "START SERVER\n";
     listener.listen(2000);
     selector.add(listener);
-    sf::Thread thread1(&G);
-    thread1.launch();
-    std::cout << "Enter count of players:\n";
-    std::cin >> count;
+    //sf::Thread thread1(&G);
+    //thread1.launch();
+    G(numOfPlayers);
+    sf::IpAddress ip = sf::IpAddress::getLocalAddress();
+    std::cout << "Ip: " << ip.toString() << "\n";
+    //std::cout << "Enter count of players:\n";
+    //std::cin >> count;
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+    std::cout << "server wake up\n";
     sf::Thread thread2(&F);
     thread2.launch();
     std::string mz = "f";
@@ -259,9 +205,8 @@ int main() {
                 (*cl).send(packet2);
             }
         }*/
-
-        for (auto &u : players) {
-            if (names[u.first] == true) {
+        for (auto &u : model.getPlayers()) {
+            if (model.getNames()[u.first] == true) {
                 u.second.update(time1, model, u.first);
                 u.second.ability += 0.001 * time1;
                 u.second.bul_ability += 0.001 * time1;
@@ -285,10 +230,11 @@ int main() {
                 }
             }
         }
-        for (size_t i = 0; i < bullets.size(); i++) {
-            (*bullets[i]).update(time1, model);
+        for (size_t i = 0; i < model.getBullets().size(); i++) {
+            auto& bullet = *model.getBullets()[i];
+            bullet.update(time1, model);
             packet3.clear();
-            packet3 << "name" << 7 << static_cast<int>(i) << (*bullets[i]).x << (*bullets[i]).y << (*bullets[i]).life;
+            packet3 << "name" << 7 << static_cast<int>(i) << bullet.x << bullet.y << bullet.life;
             for (auto t = clients.begin(); t != clients.end(); t++) {
                 sf::TcpSocket *cl = **t;
                 if (selector.isReady(*cl)) {
@@ -335,7 +281,7 @@ int main() {
             if(!enemy->isAlive()){
                 continue;
             }
-            enemy->currFrame += (time1 / 2'000);
+            enemy->currFrame += (time1 / 10'000) * 4.5;
             if(enemy->currFrame >= 4){
                 enemy->currFrame = 0;
             }
@@ -355,22 +301,26 @@ int main() {
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
-        for (size_t i = 0; i < bullets.size(); i++) {
-            if ((*bullets[i]).life == false) {
-                bullets.pop_front();
+        for (size_t i = 0; i < model.getBullets().size(); i++) {
+            auto& bullet = *model.getBullets()[i];
+            if (bullet.life == false) {
+                model.getBullets().erase(model.getBullets().begin() + i);
                 packet3.clear();
-                packet3 << "name" << 8;
+                packet3 << "name" << 8 << i;
+                //std::cout << "deleting " << i << " bullet\n";
                 for (auto t = clients.begin(); t != clients.end(); t++) {
                     sf::TcpSocket *cl = **t;
                     if (selector.isReady(*cl)) {
                         (*cl).send(packet3);
                     }
                 }
+                i--;
+                //std::cout << "delet succes\n";
             }
         }
 
-        for (auto u : players) {
-            names[u.first] = u.second.life;
+        for (auto u : model.getPlayers()) {
+            model.getNames()[u.first] = u.second.life;
         }
     }
 }
