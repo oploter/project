@@ -173,19 +173,15 @@ void G() {
     std::cout << "added all\n";
 }
 }
-void startServer([[maybe_unused]]int numOfPlayers) {
-    std::cout << "START SERVER\n";
+int main() {
     listener.listen(2000);
     selector.add(listener);
     sf::Thread thread1(&G);
     thread1.launch();
-    std::this_thread::sleep_for(std::chrono::seconds(2));
     sf::IpAddress ip = sf::IpAddress::getLocalAddress();
     std::cout << "Ip: " << ip.toString() << "\n";
-    //std::cout << "Enter count of players:\n";
-    //std::cin >> count;
-    std::this_thread::sleep_for(std::chrono::seconds(2));
-    std::cout << "server wake up\n";
+    std::cout << "Enter count of players:\n";
+    std::cin >> count;
     sf::Thread thread2(&F);
     thread2.launch();
     std::string mz = "f";
@@ -304,7 +300,7 @@ void startServer([[maybe_unused]]int numOfPlayers) {
             if (bullet.life == false) {
                 model.getBullets().erase(model.getBullets().begin() + i);
                 packet3.clear();
-                packet3 << "name" << 8 << i;
+                packet3 << "name" << 8 << static_cast<int>(i);
                 //std::cout << "deleting " << i << " bullet\n";
                 for (auto t = clients.begin(); t != clients.end(); t++) {
                     sf::TcpSocket *cl = **t;

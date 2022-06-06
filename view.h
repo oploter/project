@@ -17,6 +17,7 @@ private:
   std::string currPlrName = "";
 
 public:
+  virtual ~View() = default;
   static sf::Font *get_or_create_font(const std::string &font_name,
                                       const std::string &path_to_font = "");
   static sf::Texture *

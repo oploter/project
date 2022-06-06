@@ -3,7 +3,6 @@
 #include <string>
 #include "model.h"
 #include "vars.h"
-#include "game_server.h"
 #include "view.h"
 #include <SFML/Graphics.hpp>
 #include <iostream>
@@ -25,7 +24,7 @@ sf::IpAddress ip;
 std::mutex m;
 
 sf::RenderWindow window(sf::VideoMode(750, 750), "Game");
-std::unique_ptr<Model> model(new ClientModel("../map.txt"));
+std::unique_ptr<ClientModel> model(new ClientModel("../map.txt"));
 View view(window, *model);
 
 void F() {
@@ -146,36 +145,25 @@ void F() {
 }
 }
 void multiGame(){
-    //std::cout << "Enter ip: ";
-    //std::string Ip;
-    //std::cin >> Ip;
-    //ip = sf::IpAddress(Ip);
-    std::cout << "multiGame called\n";
-    ip = sf::IpAddress::getLocalAddress();
+    std::cout << "Enter ip: ";
+    std::string Ip;
+    std::cin >> Ip;
+    ip = sf::IpAddress(Ip);
     std::cout << "ip " << ip.toString() << "\n";
-    if(socket.connect(ip, 2000) != sf::Socket::Done) {
-        std::thread t(startServer, 2);
-        t.detach();
-        if(socket.connect(ip, 2000) != sf::Socket::Done){
-            std::cout << "Error\n";
-            return;
-        }
-        std::cout << "NEW SERVR\n";
-    }else{
-        std::cout << "ALREADY EXISTS\n";
+    if(socket.connect(ip, 2000) != sf::Socket::Done){
+        std::cout << "Error\n";
+        return;
     }
-    //while (true) {
-    //    std::cout << "Enter your name:\n";
-    //    std::cin >> name;
-    //    if (model->getPlayers().find(name) == model->getPlayers().end()) {
-    //        break;
-    //    }
-    //    else {
-    //        std::cout << "This name is already taken\n";
-    //    }
-    //}
-    std::cout << "Enter your name:\n";
-    std::cin >> name;
+    while (true) {
+        std::cout << "Enter your name:\n";
+        std::cin >> name;
+        if (model->getPlayers().find(name) == model->getPlayers().end()) {
+            break;
+        }
+        else {
+            std::cout << "This name is already taken\n";
+        }
+    }
     socket.setBlocking(false);
     sf::Thread thread(&F);
     thread.launch();
@@ -184,13 +172,9 @@ void multiGame(){
     model->getPlayers().emplace(name, model->getPlayer());
     model->getNames().emplace(name, true);
     model->getNames().emplace("name", true);
-    std::cout << "CLIENTMODEL " << model->getPlayers().size() << ' ' << model->getNames().size() << ' ' << model->getMap().getCols() << ' ' << model->getMap().getRows() << "\n";
-    std::cout << "MODEL TYPE " << (model->type == 1 ? "SERVER" : "CLIENT") << "\n";
-    assert(model->getMap().getCols() > 0 && model->getMap().getRows() > 0);
     packet2.clear();
     packet2 << name << 1;
     socket.send(packet2);
-    std::cout << "FFFF " << static_cast<void*>(model.get()) << "\n";
 
     while (window.isOpen() && model->state == GameState::GAME) {
         sf::Event ev;
@@ -291,30 +275,10 @@ int main(){
             if (ev.type == sf::Event::Closed) {
                 window.close();
             }else if(ev.type == sf::Event::MouseButtonPressed){
-                std::cout << "MOUSE CLICKED\n";
-                [[maybe_unused]]auto mousePos = sf::Mouse::getPosition(window);
-                std::cout << "clicked\n";
-                std::cout << "Before model new\n";
                 model = std::move(std::unique_ptr<ClientModel>(new ClientModel("../map.txt")));
-                std::cout << "after model nem\n";
-                std::cout << model->getMap().getCols() << ' ' << model->getMap().getRows() << '\n';
                 model->state = GameState::GAME;
                 view.changeModel(*model);
                 multiGame();
-                //if(model->getButtons()[0].isClicked(mousePos.x, mousePos.y)){
-                //    model = std::move(std::unique_ptr<ServerModel>(new ServerModel("map.txt", 1 + rand() % 6)));
-                //    model->state = GameState::GAME;
-                //    view.changeModel(*model);
-                //    multiGame();
-                //}else if(model->getButtons()[1].isClicked(mousePos.x, mousePos.y)){
-                //    window.close();
-                //}else if(model->getButtons()[2].isClicked(mousePos.x, mousePos.y)){
-                //    model = std::move(std::unique_ptr<ClientModel>(new ClientModel("map.txt")));
-                //    model->state = GameState::GAME;
-                //    view.changeModel(*model);
-                //    multiGame();
-                //}
-
             }
         }
         window.clear(sf::Color(100, 100, 100));

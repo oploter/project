@@ -19,6 +19,7 @@ protected:
   std::map <std::string, bool> names;
 
 public:
+  virtual ~Model() = default;
   GameState state;
   Map &getMap();
   Player &getPlayer();

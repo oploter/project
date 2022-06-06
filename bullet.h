@@ -5,6 +5,7 @@
 struct Model;
 struct ServerModel;
 struct Bullet{
+    virtual ~Bullet() = default;
     float x, y;
     float w, h, dx, dy, speed;
     bool life;
