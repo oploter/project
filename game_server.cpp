@@ -152,9 +152,8 @@ void F() {
         }
     }
 }
-void G(int numPlrs) {
-    int playerCnt = 0;
-    while (playerCnt < numPlrs) {
+void G() {
+    while (true) {
         if (selector.wait()) {
             if (selector.isReady(listener)) {
                 m.lock();
@@ -163,7 +162,6 @@ void G(int numPlrs) {
                     (*client).setBlocking(false);
                     clients.emplace_back(std::make_unique<sf::TcpSocket*>(client));
                     selector.add(*client);
-                    playerCnt++;
                 }
                 else {
                     delete client;
@@ -179,9 +177,9 @@ void startServer([[maybe_unused]]int numOfPlayers) {
     std::cout << "START SERVER\n";
     listener.listen(2000);
     selector.add(listener);
-    //sf::Thread thread1(&G);
-    //thread1.launch();
-    G(numOfPlayers);
+    sf::Thread thread1(&G);
+    thread1.launch();
+    std::this_thread::sleep_for(std::chrono::seconds(2));
     sf::IpAddress ip = sf::IpAddress::getLocalAddress();
     std::cout << "Ip: " << ip.toString() << "\n";
     //std::cout << "Enter count of players:\n";
