@@ -41,9 +41,10 @@ sf::Texture *View::get_or_create_texture(const std::string &texture_name,
 View::View(sf::RenderWindow &window_, Model &model_)
         : window(window_), model(&model_), screen_width(window.getSize().x),
           screen_height(window.getSize().y) {
-    get_or_create_texture("map", "../img/blocks.png");
-    get_or_create_font("font", "../img/arial.ttf");
-    enemySprite.setTexture(*get_or_create_texture("enemy", "../img/enemy.png", true));
+    get_or_create_texture("map", "img/blocks.png");
+    get_or_create_font("font", "img/arial.ttf");
+    get_or_create_texture("bullet", "img/bullet.png");
+    enemySprite.setTexture(*get_or_create_texture("enemy", "img/enemy.png", true));
 
     text_s.setFont(*get_or_create_font("font"));
     text_s.setCharacterSize(20);
@@ -83,6 +84,8 @@ void View::drawMap(Player& thisPlr) {
             BlockType t = model->getMap().at(row, col);
             if(model->getMap().time_hurt[row][col] > 0 && (t == BlockType::SMALL_FLOWER || t == BlockType::AVERAGE_FLOWER || t == BlockType::BIG_FLOWER)){
                 mapSprite.setColor(sf::Color::Red);
+            }else if(model->getMap().time_hurt[row][col] > 0 && (t == BlockType::GREEN)){
+                model->getMap().time_hurt[row][col] = 0;
             }
             switch (t) {
                 case BlockType::WATER:
@@ -147,21 +150,19 @@ void View::drawMap(Player& thisPlr) {
     text_bul.setPosition(450, 700);
     window.draw(text_bul);
 
-    if(model->type == 1){
-        for(std::unique_ptr<ServerBullet>& bullet : static_cast<ServerModel*>(model)->getBullets()){
-            if(!bullet->life){
+    std::vector<int> drawing;
+    if(model->type == 2){
+        for(auto it = static_cast<ClientModel*>(model)->getBullets().begin(); it != static_cast<ClientModel*>(model)->getBullets().end(); it++){
+            if(it->second.life == false){
                 continue;
             }
-            window.draw(bullet->sprite);
-        }
-    }else{
-        for(std::unique_ptr<ClientBullet>& bullet : static_cast<ClientModel*>(model)->getBullets()){
-            if(!bullet->life){
-                continue;
-            }
-            window.draw(bullet->sprite);
+            it->second.sprite.setPosition(it->second.x, it->second.y);
+            it->second.sprite.setTexture(*get_or_create_texture("bullet"));
+            drawing.push_back(it->second.id);
+            window.draw(it->second.sprite);
         }
     }
+    static_cast<ClientModel*>(model)->getBullets().clear();
     for (auto& u : model->getPlayers()) {
         if (model->getNames()[u.first] == true) {
             sf::Text text_p("", *(View::get_or_create_font("font")), 20);

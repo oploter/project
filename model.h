@@ -16,7 +16,8 @@ protected:
   std::vector<Button> buttons;
   Player plr;
   std::map <std::string, Player> players;
-  std::map <std::string, bool> names;
+  std::map <std::string, bool> names; 
+  int currWave = 0;
 
 public:
   virtual ~Model() = default;
@@ -34,20 +35,21 @@ public:
 struct ServerModel : Model{
 private:
     std::vector<std::unique_ptr<Enemy>> enemies;
-    std::vector<std::unique_ptr<ServerBullet>> bullets;
+    std::vector<ServerBullet> bullets;
+    void createEnemies();
 public:
     ServerModel(const std::string& mapFileName, int numofEnemies = 1);
     std::vector<std::unique_ptr<Enemy>>& getEnemies();
-    std::vector<std::unique_ptr<ServerBullet>>& getBullets();
+    std::vector<ServerBullet>& getBullets();
     void update(float time);
 };
 struct ClientModel : Model{
 private:
     std::map<int, ClientEnemy> enemies;
-    std::vector<std::unique_ptr<ClientBullet>> bullets;
+    std::map<int, ClientBullet> bullets;
 public:
     std::map<int, ClientEnemy>& getEnemies();
-    std::vector<std::unique_ptr<ClientBullet>>& getBullets();
+    std::map<int, ClientBullet>& getBullets();
     ClientModel(const std::string& mapFileName);
 };
 #endif

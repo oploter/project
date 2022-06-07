@@ -35,11 +35,13 @@ struct Enemy {
     std::pair<float, float> getDest() const;
     std::pair<int, int> getMapPos() const;
     int hp = 100;
+    std::string killedBy = "";
     int id;
     float currFrame = 0;
     const float w = 25.0, h = 41.75;
     const float speed = BlockSize / 6;
     bool isAlive() const;
+    void kill(const std::string& killer);
 };
 struct Zombie : Enemy {
     Zombie(Map &map, int id_);

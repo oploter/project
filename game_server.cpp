@@ -15,10 +15,11 @@
 #include <thread>
 
 namespace{
-ServerModel model("../map.txt", 1 + (rand() % 5));
+ServerModel model("map.txt", 1 + (rand() % 5));
 
 sf::Clock clock1;
 float time1;
+int bulletCount = 0;
 std::size_t count;
 std::string message = "";
 sf::Packet packet1, packet2, packet3, packetWithEnemies;
@@ -125,11 +126,11 @@ void F() {
                                 players.at(nameRec).ind = 0;
                             } else if (button == "S") {
                                 if (players.at(nameRec).bul_ability >= 10 && players.at(nameRec).bullets > 0) {
-                                    model.getBullets().emplace_back(std::make_unique<ServerBullet>("bullet.png", players.at(nameRec).x,
-                                                                                  players.at(nameRec).y, 16.0, 16.0,
-                                                                                  players.at(nameRec).dir, nameRec));
+                                    model.getBullets().emplace_back("bullet.png", players.at(nameRec).x, players.at(nameRec).y, 16.0, 16.0, players.at(nameRec).dir, nameRec, bulletCount);
+                                    bulletCount++;
                                     packet2.clear();
-                                    packet2 << nameRec << 4;
+                                    packet2 << nameRec << 4 << (model.getBullets().size() - 1);
+                                    std::cout << "new bullet " << model.getBullets().back().id << "\n";
                                     players.at(nameRec).bul_ability = 0;
                                     players.at(nameRec).bullets -= 1;
                                 }
@@ -170,7 +171,6 @@ void G() {
             }
         }
     }
-    std::cout << "added all\n";
 }
 }
 int main() {
@@ -225,10 +225,17 @@ int main() {
             }
         }
         for (size_t i = 0; i < model.getBullets().size(); i++) {
-            auto& bullet = *model.getBullets()[i];
+            auto& bullet = model.getBullets()[i];
             bullet.update(time1, model);
             packet3.clear();
-            packet3 << "name" << 7 << static_cast<int>(i) << bullet.x << bullet.y << bullet.life;
+            if(bullet.life == false){
+                packet3 << "name" << 8 << bullet.id;
+                std::swap(model.getBullets()[i], model.getBullets().back());
+                model.getBullets().pop_back();
+                i--;
+                continue;
+            }
+            packet3 << "name" << 7 << bullet.id << bullet.x << bullet.y << bullet.life;
             for (auto t = clients.begin(); t != clients.end(); t++) {
                 sf::TcpSocket *cl = **t;
                 if (selector.isReady(*cl)) {
@@ -283,7 +290,6 @@ int main() {
             packetWithEnemies << enemy->id << enemy->getPos().first << enemy->getPos().second << enemy->hp << enemy->currFrame << static_cast<int>(enemy->getDirection()) << static_cast<int>(enemy->getAction());
             if(enemy->getAction() == Action::ATTACK){
                 packetWithEnemies << model.getMap().time_hurt[enemy->getMapPos().first][enemy->getMapPos().second];
-                std::cout << "hurt " << model.getMap().time_hurt[enemy->getMapPos().first][enemy->getMapPos().second] << "\n";
             }
         }
         for (auto t = clients.begin(); t != clients.end(); t++) {
@@ -295,23 +301,23 @@ int main() {
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
-        for (size_t i = 0; i < model.getBullets().size(); i++) {
-            auto& bullet = *model.getBullets()[i];
-            if (bullet.life == false) {
-                model.getBullets().erase(model.getBullets().begin() + i);
-                packet3.clear();
-                packet3 << "name" << 8 << static_cast<int>(i);
-                //std::cout << "deleting " << i << " bullet\n";
-                for (auto t = clients.begin(); t != clients.end(); t++) {
-                    sf::TcpSocket *cl = **t;
-                    if (selector.isReady(*cl)) {
-                        (*cl).send(packet3);
-                    }
-                }
-                i--;
-                //std::cout << "delet succes\n";
-            }
-        }
+        //for (size_t i = 0; i < model.getBullets().size(); i++) {
+        //    auto& bullet = *model.getBullets()[i];
+        //    if (bullet.life == false) {
+        //        model.getBullets().erase(model.getBullets().begin() + i);
+        //        packet3.clear();
+        //        packet3 << "name" << 8 << static_cast<int>(i);
+        //        //std::cout << "deleting " << i << " bullet\n";
+        //        for (auto t = clients.begin(); t != clients.end(); t++) {
+        //            sf::TcpSocket *cl = **t;
+        //            if (selector.isReady(*cl)) {
+        //                (*cl).send(packet3);
+        //            }
+        //        }
+        //        i--;
+        //        //std::cout << "delet succes\n";
+        //    }
+        //}
 
         for (auto u : model.getPlayers()) {
             model.getNames()[u.first] = u.second.life;

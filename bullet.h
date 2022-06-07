@@ -9,23 +9,24 @@ struct Bullet{
     float x, y;
     float w, h, dx, dy, speed;
     bool life;
-    int dir;
+    int dir, id;
     sf::String File;
     sf::Image image;
     sf::Texture texture;
     sf::Sprite sprite;
-    Bullet(sf::String F, float X, float Y, float W, float H, int dir_);
-
+    Bullet(sf::String F, float X, float Y, float W, float H, int dir_, int id_);
+    Bullet(){}
 };
 struct ClientBullet : Bullet{
-    ClientBullet(sf::String F, float X, float Y, float W, float H, int dir_);
+    ClientBullet(){}
+    ClientBullet(sf::String F, float X, float Y, float W, float H, int dir_, int id_);
 };
 struct ServerBullet : Bullet{
 private:    
-    const int force = 20;
+    static inline const int force = 20;
 public:
     std::string name;
-    ServerBullet(sf::String F, float X, float Y, float W, float H, int dir_, const std::string &name_);
+    ServerBullet(sf::String F, float X, float Y, float W, float H, int dir_, const std::string &name_, int id_);
     void update(float time, ServerModel &model);
     void interactionWithMap(ServerModel &model);
 };

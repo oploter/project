@@ -198,3 +198,7 @@ void Zombie::updateActionAndDir(Map &map) {
 bool Enemy::isAlive() const{
     return alive;
 }
+void Enemy::kill(const std::string& killer){
+    killedBy = killer;
+    alive = false;
+}

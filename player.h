@@ -17,6 +17,7 @@ public:
     sf::Texture texture;
     sf::Sprite sprite;
     Player(sf::String F, float X, float Y, float W, float H);
+    Player(){}
     void update(float time, Model &model, const std::string &name);
     void interactionWithMap(float time, Model &model, const std::string &name);
 };

@@ -24,7 +24,7 @@ sf::IpAddress ip;
 std::mutex m;
 
 sf::RenderWindow window(sf::VideoMode(750, 750), "Game");
-std::unique_ptr<ClientModel> model(new ClientModel("../map.txt"));
+std::unique_ptr<ClientModel> model(new ClientModel("map.txt"));
 View view(window, *model);
 
 void F() {
@@ -64,9 +64,9 @@ void F() {
                         model->getMap().field[row][col] = static_cast<BlockType>(static_cast<int>('4') - 48);
                     }
                 } else if (command == 4) {
-                    static_cast<ClientModel&>(*model).getBullets().emplace_back(
-                            std::make_unique<ClientBullet>("bullet.png", players.at(nameRec).x, players.at(nameRec).y, 16.0,
-                                                     16.0, players.at(nameRec).dir));
+                    int id;
+                    packet1 >> id;
+                    static_cast<ClientModel&>(*model).getBullets()[id] = ClientBullet("bullet.png", players.at(nameRec).x, players.at(nameRec).y, 16.0, 16.0, players.at(nameRec).dir, id);
                 } else if (command == 5) {
                     packet1 >> players.at(nameRec).x >> players.at(nameRec).y
                             >> players.at(nameRec).health >> players.at(nameRec).playerscore
@@ -113,13 +113,13 @@ void F() {
                 } else if (command == 7) {
                     int ind;
                     packet1 >> ind;
-                    auto& bullet = *(static_cast<ClientModel&>(*model).getBullets())[ind];
+                    auto& bullet = static_cast<ClientModel&>(*model).getBullets()[ind];
                     packet1 >> bullet.x >> bullet.y >> bullet.life;
                     bullet.sprite.setPosition(bullet.x, bullet.y);
                 } else if (command == 8) {
-                    int bulletInd;
-                    packet1 >> bulletInd;
-                    static_cast<ClientModel&>(*model).getBullets().erase(static_cast<ClientModel&>(*model).getBullets().begin() + bulletInd);
+                    int bulletId;
+                    packet1 >> bulletId;
+                    static_cast<ClientModel&>(*model).getBullets()[bulletId].life = false;
                 } else if (command == 9){
                     static_cast<ClientModel&>(*model).getEnemies().clear();
                     int enemiesCount;
@@ -175,10 +175,13 @@ void multiGame(){
     packet2.clear();
     packet2 << name << 1;
     socket.send(packet2);
-
-    while (window.isOpen() && model->state == GameState::GAME) {
+    int cnt = 0;
+    while (window.isOpen() && model->state == GameState::GAME && model->getPlayers().at(name).health > 0) {
         sf::Event ev;
-
+        cnt++;
+        if(cnt > 50){
+            cnt = 0;
+        }
         while (window.pollEvent(ev)) {
             if (ev.type == sf::Event::Closed) {
                 window.close();
@@ -261,12 +264,16 @@ void multiGame(){
             model->state = GameState::DIED;
         }
         else if (model->getPlayers().at(name).health <= 0) {
+            std::cout << "LAYER DIED!!!!\n";
             packet2.clear();
             packet2 << name << 3;
             socket.send(packet2);
         }
         window.display();
     }
+    thread.terminate();
+    std::cout << "return from multGame\n";
+    return;
 }
 int main(){
     while(window.isOpen() && (model->state == GameState::MENU || model->state == GameState::DIED)){
@@ -275,10 +282,12 @@ int main(){
             if (ev.type == sf::Event::Closed) {
                 window.close();
             }else if(ev.type == sf::Event::MouseButtonPressed){
-                model = std::move(std::unique_ptr<ClientModel>(new ClientModel("../map.txt")));
                 model->state = GameState::GAME;
-                view.changeModel(*model);
                 multiGame();
+                std::cout << "BACK IN MAIN||||||\n";
+                model = std::move(std::unique_ptr<ClientModel>(new ClientModel("map.txt")));
+                model->state = GameState::DIED;
+                view.changeModel(*model);
             }
         }
         window.clear(sf::Color(100, 100, 100));

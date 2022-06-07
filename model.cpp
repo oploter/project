@@ -14,8 +14,8 @@ Model::Model(const std::string &mapFileName) : map(mapFileName), plr("hero.png",
     buttons.emplace_back(L"Сетевая игра", 250, 380);
     std::cout << "model has " << buttons.size() << "buttons\n";
 }
-std::mt19937 rng_model(1729); // yes, this is a fixed seed
-//std::uniform_real_distribution<> gen_real(0, std::mt19937::max()) ;
+std::random_device rd; 
+std::mt19937 rng_model(rd());
 std::pair<float, float> Model::randPoint(bool isGreen){
     float rand_x, rand_y;
     while(1){
@@ -99,24 +99,37 @@ void Model::update(float time) {
             }
         }
     }
-    if(plr.health <= 0){
-        state = GameState::DIED;
-        std::cout << "DIIIED\n";
-    }
 }
 std::vector<std::unique_ptr<Enemy>>& ServerModel::getEnemies(){
     return enemies;
 }
 ServerModel::ServerModel(const std::string& mapFileName, int numOfEnemies) : Model(mapFileName){
     type = 1;
-    for(int i = 0; i < numOfEnemies; i++){
-        enemies.push_back(std::move(std::unique_ptr<Enemy>(new Zombie(map, i))));
-    }   
+    currWave = numOfEnemies;
+    createEnemies();
 }
 void ServerModel::update(float time){
     Model::update(time);
-    for(auto& enemy : enemies){
-        enemy->update(time, *this);
+    for(int i = 0; i < enemies.size(); i++){
+        enemies[i]->update(time, *this);
+        if(!enemies[i]->isAlive()){
+            players[enemies[i]->killedBy].playerscore += 10;
+            enemies.erase(enemies.begin() + i);
+            i--;
+        }
+    }
+    if(enemies.size() == 0){
+        std::random_device rd_enemy; // obtain a random number from hardware
+        std::mt19937 gen(rd_enemy());
+        std::uniform_int_distribution<> distr(currWave, currWave + 3);
+        currWave = distr(gen);
+        createEnemies();
+    }
+}
+void ServerModel::createEnemies(){
+    enemies.clear();
+    for(int i = 0; i < currWave; i++){
+        enemies.push_back(std::move(std::unique_ptr<Zombie>(new Zombie(map, i))));
     }
 }
 ClientModel::ClientModel(const std::string& mapFileName) : Model(mapFileName){
@@ -126,10 +139,10 @@ std::map<int, ClientEnemy>& ClientModel::getEnemies(){ return enemies; }
 bool checkIsPlant(BlockType t){
     return (t == BlockType::AVERAGE_FLOWER || t == BlockType::BIG_FLOWER || t == BlockType::SMALL_FLOWER);
 }
-std::vector<std::unique_ptr<ServerBullet>>& ServerModel::getBullets(){
+std::vector<ServerBullet>& ServerModel::getBullets(){
     return bullets;
 }
-std::vector<std::unique_ptr<ClientBullet>>& ClientModel::getBullets(){
+std::map<int, ClientBullet>& ClientModel::getBullets(){
     return bullets;
 }
 std::map<std::string, Player>& Model::getPlayers(){
