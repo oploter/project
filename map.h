@@ -7,9 +7,16 @@ struct Map {
 private:
   int rows = 0;
   int cols = 0;
-  std::vector<std::vector<BlockType>> field;
 
 public:
+  std::vector<std::vector<BlockType>> field;
+  std::vector<std::vector<int>> time_of_life;
+  std::vector<std::vector<int>> score_of_coins;
+  std::vector<std::vector<int>> last_time;
+  std::vector<std::vector<int>> life_of_flowers;
+  std::vector<std::vector<std::string>> map_of_players;
+  std::vector<std::vector<float>> time_hurt;
+
   Map(int rows_, int cols_);
   Map(const std::string &file_name);
   int getRows() const;

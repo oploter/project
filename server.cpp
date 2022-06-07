@@ -3,19 +3,21 @@
 #include <string>
 #include <vector>
 #include <mutex>
+#include <utility>
 std::string name;
 std::string message = "";
-sf::Packet packet1, packet2;
+sf::Packet packet1, packet2, packet3;
 sf::TcpListener listener;
 sf::SocketSelector selector;
 std::mutex m;
-std::vector <sf::TcpSocket*> clients;
+std::vector <std::unique_ptr<sf::TcpSocket*>> clients;
+int size = 0;
 void F() {
     while (true) {
         for (auto it = clients.begin(); it != clients.end(); it++) {
-            sf::TcpSocket& client = **it;
-            if (selector.isReady(client)) {
-                if (client.receive(packet1) == sf::Socket::Done) {
+            sf::TcpSocket* client = **it;
+            if (selector.isReady(*client)) {
+                if ((*client).receive(packet1) == sf::Socket::Done) {
                     m.lock();
                     std::string nameRec;
                     std::string messageRec;
@@ -36,7 +38,7 @@ void G() {
                 sf::TcpSocket* client = new sf::TcpSocket;
                 if (listener.accept(*client) == sf::Socket::Done) {
                     (*client).setBlocking(false);
-                    clients.push_back(client);
+                    clients.emplace_back(std::make_unique<sf::TcpSocket*>(client));
                     selector.add(*client);
                 }
                 else {
@@ -61,12 +63,12 @@ int main() {
         //std::cout << clients.size() << "\n";
         std::cin >> message;
         if (message != "") {
-            packet2.clear();
-            packet2 << name << message;
+            packet3.clear();
+            packet3 << name << message;
             for (auto it = clients.begin(); it != clients.end(); it++) {
-                sf::TcpSocket& client = **it;
-                if (selector.isReady(client)) {
-                    client.send(packet2);
+                sf::TcpSocket* client = **it;
+                if (selector.isReady(*client)) {
+                    (*client).send(packet3);
                 }
             }
             message = "";
